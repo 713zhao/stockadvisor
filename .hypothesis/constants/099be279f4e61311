@@ -1,0 +1,4 @@
+# file: C:\ZJB\ai\stock\stockmarket\stock_market_analysis\models\recommendation.py
+# hypothesis_version: 6.151.9
+
+['buy', 'hold', 'sell']

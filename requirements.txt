@@ -1,0 +1,24 @@
+# Core dependencies
+pytest>=7.0.0
+hypothesis>=6.0.0
+
+# For decimal and datetime handling
+python-dateutil>=2.8.0
+
+# For HTTP requests (market data APIs, webhooks)
+requests>=2.28.0
+
+# For email functionality (smtplib is part of Python standard library)
+
+# For configuration management
+pyyaml>=6.0
+
+# For scheduling
+schedule>=1.2.0
+croniter>=1.3.0
+
+# Development dependencies
+pytest-cov>=4.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0

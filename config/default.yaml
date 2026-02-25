@@ -1,0 +1,41 @@
+# Default configuration for Stock Market Analysis system
+
+# Market regions to monitor (defaults to China, Hong Kong, USA if not specified)
+market_regions:
+  - china
+  - hong_kong
+  - usa
+
+# Notification channels configuration
+notifications:
+  telegram:
+    enabled: true
+    bot_token: "8590604429:AAHdJ7sy6ZD8WXHtP8Wocnms00T0U_sERoI"
+    chat_ids: [8383381149]
+  
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: ""
+  
+  email:
+    enabled: false
+    smtp:
+      host: ""
+      port: 587
+      username: ""
+      password: ""
+      use_tls: true
+    sender_address: ""
+    recipients: []
+
+# Analysis scheduling (cron expression format)
+# Default: Run after market close (6 PM EST)
+schedule: "0 18 * * 1-5"
+
+# Logging configuration
+logging:
+  level: INFO
+  file: logs/stock_analysis.log
+  max_size_mb: 100
+  backup_count: 5

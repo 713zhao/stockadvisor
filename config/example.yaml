@@ -1,0 +1,41 @@
+# Example configuration for Stock Market Analysis system
+# Copy this file to production.yaml and fill in your actual credentials
+
+market_regions:
+  - china
+  - hong_kong
+  - usa
+
+notifications:
+  telegram:
+    enabled: true
+    bot_token: "YOUR_TELEGRAM_BOT_TOKEN_HERE"
+    chat_ids:
+      - "YOUR_CHAT_ID_HERE"
+  
+  slack:
+    enabled: true
+    webhook_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+    channel: "#stock-alerts"
+  
+  email:
+    enabled: true
+    smtp:
+      host: "smtp.gmail.com"
+      port: 587
+      username: "your-email@gmail.com"
+      password: "your-app-password"
+      use_tls: true
+    sender_address: "your-email@gmail.com"
+    recipients:
+      - "recipient1@example.com"
+      - "recipient2@example.com"
+
+# Run analysis at 6 PM EST on weekdays
+schedule: "0 18 * * 1-5"
+
+logging:
+  level: INFO
+  file: logs/stock_analysis.log
+  max_size_mb: 100
+  backup_count: 5

@@ -1,0 +1,92 @@
+"""
+Mock market data API for testing and development.
+
+This module provides a mock implementation of the MarketDataAPI interface
+that generates realistic-looking test data without requiring external API calls.
+"""
+
+import random
+from datetime import datetime
+from decimal import Decimal
+from typing import List
+
+from ..models import MarketRegion, MarketData
+from .market_monitor import MarketDataAPI
+
+
+class MockMarketDataAPI(MarketDataAPI):
+    """
+    Mock implementation of MarketDataAPI for testing.
+    
+    Generates realistic-looking market data without external API calls.
+    Can be configured to simulate failures for specific regions.
+    """
+    
+    def __init__(self, failing_regions: List[MarketRegion] = None):
+        """
+        Initialize the mock API.
+        
+        Args:
+            failing_regions: List of regions that should fail when fetched.
+                           Used to test error handling.
+        """
+        self.failing_regions = failing_regions or []
+        
+        # Sample stock symbols by region
+        self._symbols_by_region = {
+            MarketRegion.CHINA: ["600000.SS", "600036.SS", "601398.SS", "601857.SS", "601988.SS"],
+            MarketRegion.HONG_KONG: ["0001.HK", "0005.HK", "0011.HK", "0388.HK", "0700.HK"],
+            MarketRegion.USA: ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"]
+        }
+    
+    def fetch_market_data(self, region: MarketRegion) -> List[MarketData]:
+        """
+        Fetches mock market data for a specific region.
+        
+        Args:
+            region: Market region to fetch data for
+            
+        Returns:
+            List of MarketData for stocks in the region
+            
+        Raises:
+            Exception: If region is in failing_regions list
+        """
+        # Simulate failure for configured regions
+        if region in self.failing_regions:
+            raise Exception(f"Simulated API failure for region {region.value}")
+        
+        # Get symbols for this region
+        symbols = self._symbols_by_region.get(region, [])
+        
+        # Generate mock data for each symbol
+        market_data_list = []
+        timestamp = datetime.now()
+        
+        for symbol in symbols:
+            # Generate realistic-looking prices
+            base_price = random.uniform(50, 500)
+            open_price = Decimal(str(round(base_price, 2)))
+            close_price = Decimal(str(round(base_price * random.uniform(0.95, 1.05), 2)))
+            high_price = Decimal(str(round(max(float(open_price), float(close_price)) * random.uniform(1.0, 1.03), 2)))
+            low_price = Decimal(str(round(min(float(open_price), float(close_price)) * random.uniform(0.97, 1.0), 2)))
+            volume = random.randint(1000000, 100000000)
+            
+            market_data = MarketData(
+                symbol=symbol,
+                region=region,
+                timestamp=timestamp,
+                open_price=open_price,
+                close_price=close_price,
+                high_price=high_price,
+                low_price=low_price,
+                volume=volume,
+                additional_metrics={
+                    "rsi": random.uniform(30, 70),
+                    "macd": random.uniform(-5, 5),
+                    "volume_avg": random.randint(500000, 50000000)
+                }
+            )
+            market_data_list.append(market_data)
+        
+        return market_data_list

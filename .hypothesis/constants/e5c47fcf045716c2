@@ -1,0 +1,4 @@
+# file: C:\ZJB\ai\stock\stockmarket\stock_market_analysis\components\configuration_manager.py
+# hypothesis_version: 6.151.9
+
+[65535, '#', '-', '@', 'Result', '_', 'config/default.yaml', 'custom_schedule', 'email', 'market_regions', 'r', 'recipients', 'sender_address', 'slack', 'smtp', 'telegram', 'w']
