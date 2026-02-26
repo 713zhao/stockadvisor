@@ -1,4 +1,0 @@
-# file: C:\ZJB\ai\stock\stockmarket\stock_market_analysis\components\mock_market_api.py
-# hypothesis_version: 6.151.9
-
-[0.95, 0.97, 1.0, 1.03, 1.05, 500, 500000, 1000000, 50000000, 100000000, '0001.HK', '0005.HK', '0011.HK', '0388.HK', '0700.HK', '600000.SS', '600036.SS', '601398.SS', '601857.SS', '601988.SS', 'AAPL', 'AMZN', 'GOOGL', 'MSFT', 'TSLA', 'macd', 'rsi', 'volume_avg']

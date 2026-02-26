@@ -41,6 +41,8 @@ htmlcov/
 
 # Logs
 logs/*.log
+logs/*.jsonl
+logs/stock_analysis.log
 
 # Configuration
 config/production.yaml
