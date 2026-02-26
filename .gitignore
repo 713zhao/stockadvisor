@@ -45,6 +45,9 @@ logs/*.log
 config/production.yaml
 config/local.yaml
 
+# Reports
+reports/
+
 # OS
 .DS_Store
 Thumbs.db

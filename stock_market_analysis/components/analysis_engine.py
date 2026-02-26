@@ -162,6 +162,7 @@ class AnalysisEngine:
         
         return StockRecommendation(
             symbol=stock.symbol,
+            name=stock.name,
             region=stock.region,
             recommendation_type=recommendation_type,
             rationale=rationale,

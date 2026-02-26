@@ -73,6 +73,13 @@ class ReportGenerator:
             market_summaries=market_summaries
         )
         
+        # Save report to disk
+        try:
+            report_path = report.save_to_disk()
+            self.logger.info(f"Report saved to disk: {report_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to save report to disk: {e}")
+        
         self.logger.info(f"Daily report generated successfully: {report_id}")
         
         return report

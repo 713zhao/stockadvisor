@@ -15,6 +15,7 @@ class MarketData:
     """Raw market data for a single stock."""
     
     symbol: str
+    name: str  # Full company name
     region: MarketRegion
     timestamp: datetime
     open_price: Decimal

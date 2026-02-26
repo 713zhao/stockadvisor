@@ -32,11 +32,29 @@ class MockMarketDataAPI(MarketDataAPI):
         """
         self.failing_regions = failing_regions or []
         
-        # Sample stock symbols by region
-        self._symbols_by_region = {
-            MarketRegion.CHINA: ["600000.SS", "600036.SS", "601398.SS", "601857.SS", "601988.SS"],
-            MarketRegion.HONG_KONG: ["0001.HK", "0005.HK", "0011.HK", "0388.HK", "0700.HK"],
-            MarketRegion.USA: ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"]
+        # Sample stock symbols and names by region
+        self._stocks_by_region = {
+            MarketRegion.CHINA: [
+                ("600000.SS", "Shanghai Pudong Development Bank"),
+                ("600036.SS", "China Merchants Bank"),
+                ("601398.SS", "Industrial and Commercial Bank of China"),
+                ("601857.SS", "PetroChina Company Limited"),
+                ("601988.SS", "Bank of China")
+            ],
+            MarketRegion.HONG_KONG: [
+                ("0001.HK", "CK Hutchison Holdings Limited"),
+                ("0005.HK", "HSBC Holdings plc"),
+                ("0011.HK", "Hang Seng Bank Limited"),
+                ("0388.HK", "Hong Kong Exchanges and Clearing Limited"),
+                ("0700.HK", "Tencent Holdings Limited")
+            ],
+            MarketRegion.USA: [
+                ("AAPL", "Apple Inc."),
+                ("GOOGL", "Alphabet Inc."),
+                ("MSFT", "Microsoft Corporation"),
+                ("AMZN", "Amazon.com Inc."),
+                ("TSLA", "Tesla Inc.")
+            ]
         }
     
     def fetch_market_data(self, region: MarketRegion) -> List[MarketData]:
@@ -56,14 +74,14 @@ class MockMarketDataAPI(MarketDataAPI):
         if region in self.failing_regions:
             raise Exception(f"Simulated API failure for region {region.value}")
         
-        # Get symbols for this region
-        symbols = self._symbols_by_region.get(region, [])
+        # Get stocks for this region
+        stocks = self._stocks_by_region.get(region, [])
         
-        # Generate mock data for each symbol
+        # Generate mock data for each stock
         market_data_list = []
         timestamp = datetime.now()
         
-        for symbol in symbols:
+        for symbol, name in stocks:
             # Generate realistic-looking prices
             base_price = random.uniform(50, 500)
             open_price = Decimal(str(round(base_price, 2)))
@@ -74,6 +92,7 @@ class MockMarketDataAPI(MarketDataAPI):
             
             market_data = MarketData(
                 symbol=symbol,
+                name=name,
                 region=region,
                 timestamp=timestamp,
                 open_price=open_price,
