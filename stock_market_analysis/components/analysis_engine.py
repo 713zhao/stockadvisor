@@ -2,7 +2,7 @@
 Analysis Engine component for the stock market analysis system.
 
 Analyzes market data and generates stock recommendations with rationale and risk assessment.
-Uses technical indicators including RSI, MACD, and Moving Averages.
+Uses technical indicators, fundamental analysis, volume analysis, sentiment analysis, and pattern recognition.
 """
 
 import logging
@@ -20,6 +20,10 @@ from ..models import (
     AnalysisResult
 )
 from .technical_indicators import TechnicalIndicators
+from .fundamental_analysis import FundamentalAnalysis
+from .volume_analysis import VolumeAnalysis
+from .sentiment_analysis import SentimentAnalysis
+from .pattern_recognition import PatternRecognition
 
 
 class AnalysisEngine:
@@ -45,7 +49,13 @@ class AnalysisEngine:
         self.logger = logging.getLogger(__name__)
         self.market_monitor = market_monitor
         self.admin_notifier = admin_notifier
+        
+        # Initialize analysis modules
         self.technical_indicators = TechnicalIndicators()
+        self.fundamental_analysis = FundamentalAnalysis()
+        self.volume_analysis = VolumeAnalysis()
+        self.sentiment_analysis = SentimentAnalysis()
+        self.pattern_recognition = PatternRecognition()
         
         # Retry configuration
         self.max_retries = 3
@@ -182,14 +192,14 @@ class AnalysisEngine:
         stock: MarketData
     ) -> tuple[RecommendationType, float]:
         """
-        Determines recommendation type and confidence based on technical analysis.
+        Determines recommendation type and confidence based on comprehensive analysis.
         
-        Uses multiple indicators:
-        - RSI (Relative Strength Index)
-        - MACD (Moving Average Convergence Divergence)
-        - Price momentum
-        - Volatility
-        - Volume
+        Uses multiple analysis types:
+        - Technical Analysis: RSI, MACD, momentum, volatility
+        - Fundamental Analysis: P/E ratio, earnings growth, revenue growth
+        - Volume Analysis: Trading volume trends and patterns
+        - Sentiment Analysis: Market sentiment from news and social media
+        - Pattern Recognition: Support/resistance levels, chart patterns
         
         Args:
             price_change_pct: Percentage price change
@@ -208,7 +218,8 @@ class AnalysisEngine:
         sell_score = 0
         confidence_factors = []
         
-        # 1. RSI Analysis (Weight: 30%)
+        # 1. TECHNICAL ANALYSIS (Weight: 35%)
+        # RSI Analysis
         if rsi < 30:
             buy_score += 3
             confidence_factors.append("RSI oversold")
@@ -222,79 +233,109 @@ class AnalysisEngine:
             sell_score += 2
             confidence_factors.append("RSI strong")
         
-        # 2. MACD Analysis (Weight: 25%)
+        # MACD Analysis
         if macd > 1:
             buy_score += 2.5
             confidence_factors.append("MACD bullish")
         elif macd > 0:
             buy_score += 1.5
-            confidence_factors.append("MACD positive")
         elif macd < -1:
             sell_score += 2.5
             confidence_factors.append("MACD bearish")
         elif macd < 0:
             sell_score += 1.5
-            confidence_factors.append("MACD negative")
         
-        # 3. Price Momentum Analysis (Weight: 25%)
+        # Price Momentum
         price_change_float = float(price_change_pct)
         if price_change_float > 3:
             buy_score += 2.5
-            confidence_factors.append("strong upward momentum")
         elif price_change_float > 1:
             buy_score += 1.5
-            confidence_factors.append("moderate upward momentum")
         elif price_change_float < -3:
             sell_score += 2.5
-            confidence_factors.append("strong downward momentum")
         elif price_change_float < -1:
             sell_score += 1.5
-            confidence_factors.append("moderate downward momentum")
         
-        # 4. Volatility Analysis (Weight: 10%)
+        # 2. FUNDAMENTAL ANALYSIS (Weight: 25%)
+        fundamental_signals = self.fundamental_analysis.analyze_fundamentals(stock.additional_metrics)
+        fundamental_score = fundamental_signals['fundamental_score']
+        if fundamental_score > 0:
+            buy_score += fundamental_score * 0.8
+            if fundamental_signals['valuation'] == 'undervalued':
+                confidence_factors.append("undervalued")
+        elif fundamental_score < 0:
+            sell_score += abs(fundamental_score) * 0.8
+            if fundamental_signals['valuation'] == 'overvalued':
+                confidence_factors.append("overvalued")
+        
+        # 3. VOLUME ANALYSIS (Weight: 15%)
+        volume_signals = self.volume_analysis.analyze_volume(
+            stock.volume,
+            stock.additional_metrics.get('volume_history', []),
+            price_change_float
+        )
+        volume_score = volume_signals['volume_score']
+        if volume_score > 0:
+            buy_score += volume_score * 0.6
+            sell_score += volume_score * 0.6
+            if volume_signals.get('accumulation'):
+                confidence_factors.append("accumulation")
+        elif volume_score < 0:
+            buy_score += volume_score * 0.3
+            sell_score += volume_score * 0.3
+        
+        # 4. SENTIMENT ANALYSIS (Weight: 15%)
+        sentiment_signals = self.sentiment_analysis.analyze_sentiment(stock.symbol)
+        sentiment_score = sentiment_signals['sentiment_score']
+        if sentiment_score > 0:
+            buy_score += sentiment_score * 0.6
+            if sentiment_signals['sentiment_signal'] in ['positive', 'very_positive']:
+                confidence_factors.append("positive sentiment")
+        elif sentiment_score < 0:
+            sell_score += abs(sentiment_score) * 0.6
+            if sentiment_signals['sentiment_signal'] in ['negative', 'very_negative']:
+                confidence_factors.append("negative sentiment")
+        
+        # 5. PATTERN RECOGNITION (Weight: 10%)
+        pattern_signals = self.pattern_recognition.analyze_patterns(
+            stock.close_price,
+            stock.high_price,
+            stock.low_price,
+            stock.additional_metrics.get('price_history', [])
+        )
+        pattern_score = pattern_signals['pattern_score']
+        if pattern_score > 0:
+            buy_score += pattern_score * 0.4
+            if pattern_signals.get('breakout'):
+                confidence_factors.append("breakout")
+        elif pattern_score < 0:
+            sell_score += abs(pattern_score) * 0.4
+        
+        # Volatility Adjustment
         vol_float = float(volatility)
         if vol_float < 3:
-            # Low volatility increases confidence
             buy_score += 0.5
             sell_score += 0.5
-            confidence_factors.append("low volatility")
         elif vol_float > 10:
-            # High volatility decreases confidence
             buy_score -= 0.5
             sell_score -= 0.5
-            confidence_factors.append("high volatility")
-        
-        # 5. Volume Confirmation (Weight: 10%)
-        if stock.volume > 10000000:
-            buy_score += 1
-            sell_score += 1
-            confidence_factors.append("strong volume")
-        elif stock.volume > 1000000:
-            buy_score += 0.5
-            sell_score += 0.5
-            confidence_factors.append("good volume")
         
         # Determine recommendation based on scores
         score_diff = buy_score - sell_score
         
-        if score_diff >= 3:
-            # Strong buy signal
-            confidence = min(0.90, 0.70 + (score_diff - 3) * 0.05)
+        if score_diff >= 4:
+            confidence = min(0.95, 0.75 + (score_diff - 4) * 0.04)
             return RecommendationType.BUY, confidence
-        elif score_diff >= 1.5:
-            # Moderate buy signal
-            confidence = min(0.80, 0.65 + (score_diff - 1.5) * 0.05)
+        elif score_diff >= 2:
+            confidence = min(0.85, 0.70 + (score_diff - 2) * 0.05)
             return RecommendationType.BUY, confidence
-        elif score_diff <= -3:
-            # Strong sell signal
-            confidence = min(0.90, 0.70 + (abs(score_diff) - 3) * 0.05)
+        elif score_diff <= -4:
+            confidence = min(0.95, 0.75 + (abs(score_diff) - 4) * 0.04)
             return RecommendationType.SELL, confidence
-        elif score_diff <= -1.5:
-            # Moderate sell signal
-            confidence = min(0.80, 0.65 + (abs(score_diff) - 1.5) * 0.05)
+        elif score_diff <= -2:
+            confidence = min(0.85, 0.70 + (abs(score_diff) - 2) * 0.05)
             return RecommendationType.SELL, confidence
         else:
-            # Hold signal
             confidence = 0.60
             return RecommendationType.HOLD, confidence
     
@@ -306,7 +347,14 @@ class AnalysisEngine:
         recommendation_type: RecommendationType
     ) -> str:
         """
-        Generates human-readable rationale for the recommendation.
+        Generates comprehensive human-readable rationale for the recommendation.
+        
+        Combines insights from:
+        - Technical Analysis (RSI, MACD, price momentum)
+        - Fundamental Analysis (P/E, earnings, revenue)
+        - Volume Analysis (trading patterns)
+        - Sentiment Analysis (market sentiment)
+        - Pattern Recognition (support/resistance, chart patterns)
         
         Args:
             stock: Market data
@@ -315,14 +363,11 @@ class AnalysisEngine:
             recommendation_type: Type of recommendation
             
         Returns:
-            Rationale string
+            Comprehensive rationale string
         """
-        direction = "up" if price_change_pct > 0 else "down"
-        abs_change = abs(float(price_change_pct))
-        
         rationale_parts = []
         
-        # Technical Indicators
+        # 1. TECHNICAL ANALYSIS
         rsi = stock.additional_metrics.get('rsi', 50)
         macd = stock.additional_metrics.get('macd', 0)
         
@@ -341,34 +386,57 @@ class AnalysisEngine:
             macd_trend = "bullish" if macd > 0 else "bearish"
             rationale_parts.append(f"MACD shows {macd_trend} momentum")
         
-        # Price movement analysis
+        # Price movement
+        direction = "up" if price_change_pct > 0 else "down"
+        abs_change = abs(float(price_change_pct))
         if abs_change > 3:
-            rationale_parts.append(
-                f"Strong {direction}ward price movement of {abs_change:.2f}%"
-            )
+            rationale_parts.append(f"strong {direction}ward price movement of {abs_change:.2f}%")
         elif abs_change > 1:
-            rationale_parts.append(
-                f"Moderate {direction}ward trend with {abs_change:.2f}% change"
-            )
-        else:
-            rationale_parts.append(
-                f"Stable price action with {abs_change:.2f}% change"
-            )
+            rationale_parts.append(f"moderate {direction}ward trend with {abs_change:.2f}% change")
         
-        # Volatility analysis
+        # 2. FUNDAMENTAL ANALYSIS
+        fundamental_signals = self.fundamental_analysis.analyze_fundamentals(stock.additional_metrics)
+        fundamental_rationale = self.fundamental_analysis.generate_fundamental_rationale(
+            fundamental_signals, stock.additional_metrics
+        )
+        if fundamental_rationale and "limited fundamental data" not in fundamental_rationale:
+            rationale_parts.append(fundamental_rationale)
+        
+        # 3. VOLUME ANALYSIS
+        volume_signals = self.volume_analysis.analyze_volume(
+            stock.volume,
+            stock.additional_metrics.get('volume_history', []),
+            float(price_change_pct)
+        )
+        volume_rationale = self.volume_analysis.generate_volume_rationale(
+            volume_signals, stock.volume
+        )
+        if volume_rationale:
+            rationale_parts.append(volume_rationale)
+        
+        # 4. SENTIMENT ANALYSIS
+        sentiment_signals = self.sentiment_analysis.analyze_sentiment(stock.symbol)
+        sentiment_rationale = self.sentiment_analysis.generate_sentiment_rationale(sentiment_signals)
+        if sentiment_rationale and "neutral market sentiment" not in sentiment_rationale:
+            rationale_parts.append(sentiment_rationale)
+        
+        # 5. PATTERN RECOGNITION
+        pattern_signals = self.pattern_recognition.analyze_patterns(
+            stock.close_price,
+            stock.high_price,
+            stock.low_price,
+            stock.additional_metrics.get('price_history', [])
+        )
+        pattern_rationale = self.pattern_recognition.generate_pattern_rationale(pattern_signals)
+        if pattern_rationale and "no significant patterns" not in pattern_rationale:
+            rationale_parts.append(pattern_rationale)
+        
+        # Volatility context
         vol_float = float(volatility)
         if vol_float > 10:
             rationale_parts.append("high volatility suggests uncertainty")
-        elif vol_float > 5:
-            rationale_parts.append("moderate volatility")
-        else:
+        elif vol_float < 3:
             rationale_parts.append("low volatility indicates stability")
-        
-        # Volume analysis
-        if stock.volume > 10000000:
-            rationale_parts.append("strong volume confirms trend")
-        elif stock.volume > 1000000:
-            rationale_parts.append("adequate volume")
         
         return "; ".join(rationale_parts) + "."
     

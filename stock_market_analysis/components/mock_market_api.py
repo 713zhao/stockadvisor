@@ -103,7 +103,16 @@ class MockMarketDataAPI(MarketDataAPI):
                 additional_metrics={
                     "rsi": random.uniform(30, 70),
                     "macd": random.uniform(-5, 5),
-                    "volume_avg": random.randint(500000, 50000000)
+                    "volume_avg": random.randint(500000, 50000000),
+                    # Fundamental metrics
+                    "pe_ratio": random.uniform(10, 35),
+                    "earnings_growth": random.uniform(-15, 25),
+                    "revenue_growth": random.uniform(-10, 20),
+                    "debt_to_equity": random.uniform(0.2, 1.5),
+                    # Volume history (simulated)
+                    "volume_history": [random.randint(1000000, 100000000) for _ in range(10)],
+                    # Price history (simulated)
+                    "price_history": [Decimal(str(round(base_price * random.uniform(0.9, 1.1), 2))) for _ in range(20)]
                 }
             )
             market_data_list.append(market_data)

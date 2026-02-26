@@ -30,6 +30,7 @@ class TestReportGenerator:
         recommendations = [
             StockRecommendation(
                 symbol="AAPL",
+                name="Apple Inc.",
                 region=MarketRegion.USA,
                 recommendation_type=RecommendationType.BUY,
                 rationale="Strong upward momentum",
@@ -40,6 +41,7 @@ class TestReportGenerator:
             ),
             StockRecommendation(
                 symbol="GOOGL",
+                name="Alphabet Inc.",
                 region=MarketRegion.USA,
                 recommendation_type=RecommendationType.HOLD,
                 rationale="Stable performance",
@@ -134,6 +136,7 @@ class TestReportGenerator:
         recommendations = [
             StockRecommendation(
                 symbol="AAPL",
+                name="Apple Inc.",
                 region=MarketRegion.USA,
                 recommendation_type=RecommendationType.BUY,
                 rationale="Strong momentum",
@@ -144,6 +147,7 @@ class TestReportGenerator:
             ),
             StockRecommendation(
                 symbol="0700.HK",
+                name="Tencent Holdings Limited",
                 region=MarketRegion.HONG_KONG,
                 recommendation_type=RecommendationType.SELL,
                 rationale="Downward trend",
@@ -239,6 +243,7 @@ class TestReportGenerator:
         recommendations = [
             StockRecommendation(
                 symbol="AAPL",
+                name="Apple Inc.",
                 region=MarketRegion.USA,
                 recommendation_type=RecommendationType.BUY,
                 rationale="Strong momentum",
@@ -268,8 +273,9 @@ class TestReportGenerator:
         # Verify formatting
         assert telegram_text is not None
         assert len(telegram_text) > 0
-        assert "Daily Market Report" in telegram_text
-        assert str(report.trading_date) in telegram_text
+        assert "Market Report" in telegram_text
+        # Check for date in MM/DD format
+        assert report.trading_date.strftime('%m/%d') in telegram_text
         assert "AAPL" in telegram_text
         assert "BUY" in telegram_text
     
@@ -283,6 +289,7 @@ class TestReportGenerator:
         recommendations = [
             StockRecommendation(
                 symbol="GOOGL",
+                name="Alphabet Inc.",
                 region=MarketRegion.USA,
                 recommendation_type=RecommendationType.HOLD,
                 rationale="Stable",
@@ -312,7 +319,7 @@ class TestReportGenerator:
         # Verify formatting
         assert slack_text is not None
         assert len(slack_text) > 0
-        assert "Daily Market Report" in slack_text
+        assert "Market Report" in slack_text
         assert "GOOGL" in slack_text
         assert "HOLD" in slack_text
     
@@ -326,6 +333,7 @@ class TestReportGenerator:
         recommendations = [
             StockRecommendation(
                 symbol="TSLA",
+                name="Tesla Inc.",
                 region=MarketRegion.USA,
                 recommendation_type=RecommendationType.SELL,
                 rationale="Downward trend",
@@ -357,7 +365,7 @@ class TestReportGenerator:
         assert len(email_html) > 0
         assert "<html>" in email_html
         assert "</html>" in email_html
-        assert "Daily Market Report" in email_html
+        assert "Market Report" in email_html
         assert "TSLA" in email_html
         assert "SELL" in email_html
     

@@ -98,6 +98,47 @@ class NotificationService:
         
         return result
     
+    def _split_telegram_message(self, message: str, max_length: int = 4000) -> list[str]:
+        """
+        Splits a long message into multiple parts for Telegram.
+        
+        Telegram has a 4096 character limit per message. This method splits
+        messages intelligently at line breaks to avoid cutting in the middle
+        of recommendations.
+        
+        Args:
+            message: The message to split
+            max_length: Maximum length per message (default 4000 to leave margin)
+            
+        Returns:
+            List of message parts
+        """
+        if len(message) <= max_length:
+            return [message]
+        
+        parts = []
+        lines = message.split('\n')
+        current_part = []
+        current_length = 0
+        
+        for line in lines:
+            line_length = len(line) + 1  # +1 for newline
+            
+            # If adding this line would exceed the limit, start a new part
+            if current_length + line_length > max_length and current_part:
+                parts.append('\n'.join(current_part))
+                current_part = [line]
+                current_length = line_length
+            else:
+                current_part.append(line)
+                current_length += line_length
+        
+        # Add the last part
+        if current_part:
+            parts.append('\n'.join(current_part))
+        
+        return parts
+    
     def _attempt_telegram_delivery(self, report: DailyReport) -> tuple[bool, Optional[str]]:
         """
         Attempts to deliver report via Telegram.
@@ -117,25 +158,32 @@ class NotificationService:
             # Format report for Telegram
             message = report.format_for_telegram()
             
+            # Split message if it exceeds Telegram's limit (4096 characters)
+            messages = self._split_telegram_message(message)
+            
             # Send to all configured chat IDs
             failed_chats = []
             for chat_id in telegram_config.chat_ids:
                 try:
-                    url = f"https://api.telegram.org/bot{telegram_config.bot_token}/sendMessage"
-                    payload = {
-                        'chat_id': chat_id,
-                        'text': message,
-                        'parse_mode': 'HTML'
-                    }
-                    
-                    response = requests.post(url, json=payload, timeout=10)
-                    
-                    if response.status_code == 200:
-                        self.logger.info(f"Telegram delivery successful to chat {chat_id}")
+                    # Send all message parts
+                    for msg_part in messages:
+                        url = f"https://api.telegram.org/bot{telegram_config.bot_token}/sendMessage"
+                        payload = {
+                            'chat_id': chat_id,
+                            'text': msg_part,
+                            'parse_mode': 'HTML'
+                        }
+                        
+                        response = requests.post(url, json=payload, timeout=10)
+                        
+                        if response.status_code != 200:
+                            error_msg = f"HTTP {response.status_code}: {response.text[:100]}"
+                            self.logger.error(f"Telegram delivery failed to chat {chat_id}: {error_msg}")
+                            failed_chats.append(f"{chat_id} ({error_msg})")
+                            break  # Stop sending remaining parts if one fails
                     else:
-                        error_msg = f"HTTP {response.status_code}: {response.text[:100]}"
-                        self.logger.error(f"Telegram delivery failed to chat {chat_id}: {error_msg}")
-                        failed_chats.append(f"{chat_id} ({error_msg})")
+                        # All parts sent successfully
+                        self.logger.info(f"Telegram delivery successful to chat {chat_id} ({len(messages)} message(s))")
                 
                 except Exception as e:
                     self.logger.error(f"Telegram delivery exception for chat {chat_id}: {e}")

@@ -57,6 +57,7 @@ def sample_report():
     """Create a sample daily report for testing."""
     recommendation = StockRecommendation(
         symbol="AAPL",
+        name="Apple Inc.",
         region=MarketRegion.USA,
         recommendation_type=RecommendationType.BUY,
         rationale="Strong earnings growth",
@@ -323,7 +324,8 @@ class TestChannelFormatting:
         
         assert formatted is not None
         assert len(formatted) > 0
-        assert str(sample_report.trading_date) in formatted
+        # Check for date in MM/DD format
+        assert sample_report.trading_date.strftime('%m/%d') in formatted
         assert "AAPL" in formatted
         assert "BUY" in formatted.upper()
     

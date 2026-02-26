@@ -45,7 +45,8 @@ class DailyReport:
                 for rec in buys:
                     lines.append(f"• {rec.name}")
                     lines.append(f"  {rec.symbol} | ${rec.target_price} | {rec.confidence_score:.0%}")
-                    lines.append(f"  {rec.rationale[:55]}...")
+                    lines.append(f"  📊 {rec.rationale}")
+                    lines.append(f"  ⚠️ {rec.risk_assessment}")
                     lines.append(f"  {rec.get_stock_url()}")
                 lines.append("")
             
@@ -54,7 +55,8 @@ class DailyReport:
                 for rec in sells:
                     lines.append(f"• {rec.name}")
                     lines.append(f"  {rec.symbol} | ${rec.target_price} | {rec.confidence_score:.0%}")
-                    lines.append(f"  {rec.rationale[:55]}...")
+                    lines.append(f"  📊 {rec.rationale}")
+                    lines.append(f"  ⚠️ {rec.risk_assessment}")
                     lines.append(f"  {rec.get_stock_url()}")
                 lines.append("")
             
@@ -63,6 +65,8 @@ class DailyReport:
                 for rec in holds:
                     lines.append(f"• {rec.name}")
                     lines.append(f"  {rec.symbol} | ${rec.target_price} | {rec.confidence_score:.0%}")
+                    lines.append(f"  📊 {rec.rationale}")
+                    lines.append(f"  ⚠️ {rec.risk_assessment}")
                 lines.append("")
         else:
             lines.append("ℹ️ No recommendations today")

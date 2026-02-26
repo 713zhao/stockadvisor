@@ -23,6 +23,7 @@ class TestAnalysisEngine:
         # Create test market data
         stock = MarketData(
             symbol="AAPL",
+            name="Apple Inc.",
             region=MarketRegion.USA,
             timestamp=datetime.now(),
             open_price=Decimal("150.00"),
@@ -60,6 +61,7 @@ class TestAnalysisEngine:
         # Create stock with insufficient volume
         low_volume_stock = MarketData(
             symbol="LOW",
+            name="Low Volume Stock",
             region=MarketRegion.USA,
             timestamp=datetime.now(),
             open_price=Decimal("100.00"),
@@ -73,6 +75,7 @@ class TestAnalysisEngine:
         # Create stock with invalid price
         low_price_stock = MarketData(
             symbol="PENNY",
+            name="Penny Stock",
             region=MarketRegion.USA,
             timestamp=datetime.now(),
             open_price=Decimal("0.005"),  # Below minimum
@@ -100,6 +103,7 @@ class TestAnalysisEngine:
         """Test that strong upward momentum generates BUY recommendation."""
         stock = MarketData(
             symbol="BULL",
+            name="Bullish Stock",
             region=MarketRegion.USA,
             timestamp=datetime.now(),
             open_price=Decimal("100.00"),
@@ -127,14 +131,21 @@ class TestAnalysisEngine:
         """Test that strong downward momentum generates SELL recommendation."""
         stock = MarketData(
             symbol="BEAR",
+            name="Bearish Stock",
             region=MarketRegion.USA,
             timestamp=datetime.now(),
             open_price=Decimal("100.00"),
             close_price=Decimal("95.00"),  # 5% decrease
             high_price=Decimal("101.00"),
             low_price=Decimal("94.00"),
-            volume=500000,
-            additional_metrics={}
+            volume=50000000,  # High volume to confirm trend
+            additional_metrics={
+                'rsi': 75,  # Overbought
+                'macd': -1.5,  # Bearish momentum
+                'pe_ratio': 45,  # Overvalued
+                'earnings_growth': -15,  # Declining earnings
+                'volume_history': [30000000, 35000000, 40000000, 45000000, 48000000]
+            }
         )
         
         market_data = MarketDataCollection(
@@ -154,6 +165,7 @@ class TestAnalysisEngine:
         """Test that minimal price movement generates HOLD recommendation."""
         stock = MarketData(
             symbol="STABLE",
+            name="Stable Stock",
             region=MarketRegion.USA,
             timestamp=datetime.now(),
             open_price=Decimal("100.00"),
@@ -181,6 +193,7 @@ class TestAnalysisEngine:
         """Test analysis across multiple market regions."""
         usa_stock = MarketData(
             symbol="AAPL",
+            name="Apple Inc.",
             region=MarketRegion.USA,
             timestamp=datetime.now(),
             open_price=Decimal("150.00"),
@@ -193,6 +206,7 @@ class TestAnalysisEngine:
         
         china_stock = MarketData(
             symbol="BABA",
+            name="Alibaba Group",
             region=MarketRegion.CHINA,
             timestamp=datetime.now(),
             open_price=Decimal("80.00"),
@@ -238,6 +252,7 @@ class TestAnalysisEngine:
         """Test that all recommendations have required fields populated."""
         stock = MarketData(
             symbol="TEST",
+            name="Test Stock",
             region=MarketRegion.USA,
             timestamp=datetime.now(),
             open_price=Decimal("100.00"),
@@ -274,6 +289,7 @@ class TestAnalysisEngine:
         # High price less than low price
         invalid_stock = MarketData(
             symbol="INVALID",
+            name="Invalid Stock",
             region=MarketRegion.USA,
             timestamp=datetime.now(),
             open_price=Decimal("100.00"),

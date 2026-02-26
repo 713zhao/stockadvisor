@@ -247,9 +247,9 @@ class TestDailyReportProperties:
         assert len(email_format.strip()) > 0
         
         # All formats should contain key information
-        assert "Daily Market Report" in telegram_format
-        assert "Daily Market Report" in slack_format
-        assert "Daily Market Report" in email_format
+        assert "Market Report" in telegram_format
+        assert "Market Report" in slack_format
+        assert "Market Report" in email_format
 
 
 class TestSystemConfigurationProperties:

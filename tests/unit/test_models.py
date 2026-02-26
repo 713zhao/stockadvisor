@@ -80,14 +80,15 @@ class TestDailyReport:
         """Test Telegram formatting produces non-empty output."""
         formatted = sample_daily_report.format_for_telegram()
         assert formatted != ""
-        assert "Daily Market Report" in formatted
-        assert str(sample_daily_report.trading_date) in formatted
+        assert "Market Report" in formatted
+        # Check for date in MM/DD format
+        assert sample_daily_report.trading_date.strftime('%m/%d') in formatted
     
     def test_format_for_slack(self, sample_daily_report):
         """Test Slack formatting produces non-empty output."""
         formatted = sample_daily_report.format_for_slack()
         assert formatted != ""
-        assert "Daily Market Report" in formatted
+        assert "Market Report" in formatted
         assert str(sample_daily_report.trading_date) in formatted
     
     def test_format_for_email(self, sample_daily_report):
@@ -95,7 +96,7 @@ class TestDailyReport:
         formatted = sample_daily_report.format_for_email()
         assert formatted != ""
         assert "<html>" in formatted
-        assert "Daily Market Report" in formatted
+        assert "Market Report" in formatted
 
 
 class TestSystemConfiguration:

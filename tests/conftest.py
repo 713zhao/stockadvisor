@@ -28,6 +28,7 @@ def sample_market_data():
     """Sample market data for testing."""
     return MarketData(
         symbol="AAPL",
+        name="Apple Inc.",
         region=MarketRegion.USA,
         timestamp=datetime.now(),
         open_price=Decimal("150.00"),
@@ -44,6 +45,7 @@ def sample_recommendation():
     """Sample stock recommendation for testing."""
     return StockRecommendation(
         symbol="AAPL",
+        name="Apple Inc.",
         region=MarketRegion.USA,
         recommendation_type=RecommendationType.BUY,
         rationale="Strong earnings growth and positive market sentiment",
