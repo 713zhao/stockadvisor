@@ -2,6 +2,7 @@
 Analysis Engine component for the stock market analysis system.
 
 Analyzes market data and generates stock recommendations with rationale and risk assessment.
+Uses technical indicators including RSI, MACD, and Moving Averages.
 """
 
 import logging
@@ -18,6 +19,7 @@ from ..models import (
     MarketRegion,
     AnalysisResult
 )
+from .technical_indicators import TechnicalIndicators
 
 
 class AnalysisEngine:
@@ -43,6 +45,7 @@ class AnalysisEngine:
         self.logger = logging.getLogger(__name__)
         self.market_monitor = market_monitor
         self.admin_notifier = admin_notifier
+        self.technical_indicators = TechnicalIndicators()
         
         # Retry configuration
         self.max_retries = 3
@@ -179,7 +182,14 @@ class AnalysisEngine:
         stock: MarketData
     ) -> tuple[RecommendationType, float]:
         """
-        Determines recommendation type and confidence based on analysis.
+        Determines recommendation type and confidence based on technical analysis.
+        
+        Uses multiple indicators:
+        - RSI (Relative Strength Index)
+        - MACD (Moving Average Convergence Divergence)
+        - Price momentum
+        - Volatility
+        - Volume
         
         Args:
             price_change_pct: Percentage price change
@@ -189,40 +199,104 @@ class AnalysisEngine:
         Returns:
             Tuple of (recommendation_type, confidence_score)
         """
-        # Simple momentum-based strategy
-        # In a real system, this would use sophisticated technical and fundamental analysis
+        # Get technical indicators from stock data
+        rsi = stock.additional_metrics.get('rsi', 50)
+        macd = stock.additional_metrics.get('macd', 0)
         
-        # Strong upward momentum
-        if price_change_pct > 3:
-            if volatility < 5:
-                return RecommendationType.BUY, 0.85
-            else:
-                return RecommendationType.BUY, 0.70
+        # Initialize scoring system
+        buy_score = 0
+        sell_score = 0
+        confidence_factors = []
         
-        # Moderate upward momentum
-        elif price_change_pct > 1:
-            if volatility < 5:
-                return RecommendationType.BUY, 0.70
-            else:
-                return RecommendationType.HOLD, 0.65
+        # 1. RSI Analysis (Weight: 30%)
+        if rsi < 30:
+            buy_score += 3
+            confidence_factors.append("RSI oversold")
+        elif rsi < 40:
+            buy_score += 2
+            confidence_factors.append("RSI weak")
+        elif rsi > 70:
+            sell_score += 3
+            confidence_factors.append("RSI overbought")
+        elif rsi > 60:
+            sell_score += 2
+            confidence_factors.append("RSI strong")
         
-        # Strong downward momentum
-        elif price_change_pct < -3:
-            if volatility < 5:
-                return RecommendationType.SELL, 0.80
-            else:
-                return RecommendationType.SELL, 0.75
+        # 2. MACD Analysis (Weight: 25%)
+        if macd > 1:
+            buy_score += 2.5
+            confidence_factors.append("MACD bullish")
+        elif macd > 0:
+            buy_score += 1.5
+            confidence_factors.append("MACD positive")
+        elif macd < -1:
+            sell_score += 2.5
+            confidence_factors.append("MACD bearish")
+        elif macd < 0:
+            sell_score += 1.5
+            confidence_factors.append("MACD negative")
         
-        # Moderate downward momentum
-        elif price_change_pct < -1:
-            if volatility < 5:
-                return RecommendationType.SELL, 0.65
-            else:
-                return RecommendationType.HOLD, 0.60
+        # 3. Price Momentum Analysis (Weight: 25%)
+        price_change_float = float(price_change_pct)
+        if price_change_float > 3:
+            buy_score += 2.5
+            confidence_factors.append("strong upward momentum")
+        elif price_change_float > 1:
+            buy_score += 1.5
+            confidence_factors.append("moderate upward momentum")
+        elif price_change_float < -3:
+            sell_score += 2.5
+            confidence_factors.append("strong downward momentum")
+        elif price_change_float < -1:
+            sell_score += 1.5
+            confidence_factors.append("moderate downward momentum")
         
-        # Neutral - hold position
+        # 4. Volatility Analysis (Weight: 10%)
+        vol_float = float(volatility)
+        if vol_float < 3:
+            # Low volatility increases confidence
+            buy_score += 0.5
+            sell_score += 0.5
+            confidence_factors.append("low volatility")
+        elif vol_float > 10:
+            # High volatility decreases confidence
+            buy_score -= 0.5
+            sell_score -= 0.5
+            confidence_factors.append("high volatility")
+        
+        # 5. Volume Confirmation (Weight: 10%)
+        if stock.volume > 10000000:
+            buy_score += 1
+            sell_score += 1
+            confidence_factors.append("strong volume")
+        elif stock.volume > 1000000:
+            buy_score += 0.5
+            sell_score += 0.5
+            confidence_factors.append("good volume")
+        
+        # Determine recommendation based on scores
+        score_diff = buy_score - sell_score
+        
+        if score_diff >= 3:
+            # Strong buy signal
+            confidence = min(0.90, 0.70 + (score_diff - 3) * 0.05)
+            return RecommendationType.BUY, confidence
+        elif score_diff >= 1.5:
+            # Moderate buy signal
+            confidence = min(0.80, 0.65 + (score_diff - 1.5) * 0.05)
+            return RecommendationType.BUY, confidence
+        elif score_diff <= -3:
+            # Strong sell signal
+            confidence = min(0.90, 0.70 + (abs(score_diff) - 3) * 0.05)
+            return RecommendationType.SELL, confidence
+        elif score_diff <= -1.5:
+            # Moderate sell signal
+            confidence = min(0.80, 0.65 + (abs(score_diff) - 1.5) * 0.05)
+            return RecommendationType.SELL, confidence
         else:
-            return RecommendationType.HOLD, 0.60
+            # Hold signal
+            confidence = 0.60
+            return RecommendationType.HOLD, confidence
     
     def _generate_rationale(
         self,
@@ -248,36 +322,53 @@ class AnalysisEngine:
         
         rationale_parts = []
         
+        # Technical Indicators
+        rsi = stock.additional_metrics.get('rsi', 50)
+        macd = stock.additional_metrics.get('macd', 0)
+        
+        # RSI Analysis
+        if rsi < 30:
+            rationale_parts.append(f"RSI at {rsi:.1f} indicates oversold conditions")
+        elif rsi > 70:
+            rationale_parts.append(f"RSI at {rsi:.1f} indicates overbought conditions")
+        elif rsi < 45:
+            rationale_parts.append(f"RSI at {rsi:.1f} shows potential upside")
+        elif rsi > 55:
+            rationale_parts.append(f"RSI at {rsi:.1f} suggests caution")
+        
+        # MACD Analysis
+        if abs(macd) > 0.5:
+            macd_trend = "bullish" if macd > 0 else "bearish"
+            rationale_parts.append(f"MACD shows {macd_trend} momentum")
+        
         # Price movement analysis
         if abs_change > 3:
             rationale_parts.append(
-                f"Strong {direction}ward momentum with {abs_change:.2f}% price movement"
+                f"Strong {direction}ward price movement of {abs_change:.2f}%"
             )
         elif abs_change > 1:
             rationale_parts.append(
-                f"Moderate {direction}ward trend with {abs_change:.2f}% price change"
+                f"Moderate {direction}ward trend with {abs_change:.2f}% change"
             )
         else:
             rationale_parts.append(
-                f"Stable price action with minimal {abs_change:.2f}% change"
+                f"Stable price action with {abs_change:.2f}% change"
             )
         
         # Volatility analysis
         vol_float = float(volatility)
         if vol_float > 10:
-            rationale_parts.append("high intraday volatility indicates uncertainty")
+            rationale_parts.append("high volatility suggests uncertainty")
         elif vol_float > 5:
-            rationale_parts.append("moderate volatility suggests active trading")
+            rationale_parts.append("moderate volatility")
         else:
-            rationale_parts.append("low volatility indicates stable trading")
+            rationale_parts.append("low volatility indicates stability")
         
         # Volume analysis
-        if stock.volume > 1000000:
+        if stock.volume > 10000000:
             rationale_parts.append("strong volume confirms trend")
-        elif stock.volume > 100000:
-            rationale_parts.append("adequate volume supports movement")
-        else:
-            rationale_parts.append("limited volume suggests caution")
+        elif stock.volume > 1000000:
+            rationale_parts.append("adequate volume")
         
         return "; ".join(rationale_parts) + "."
     

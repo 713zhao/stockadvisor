@@ -17,6 +17,10 @@ pyyaml>=6.0
 schedule>=1.2.0
 croniter>=1.3.0
 
+# For technical analysis
+numpy>=1.24.0
+pandas>=2.0.0
+
 # Development dependencies
 pytest-cov>=4.0.0
 black>=22.0.0
