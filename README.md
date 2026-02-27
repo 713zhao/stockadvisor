@@ -1,30 +1,47 @@
 # Stock Market Analysis and Recommendation System
 
-A scheduled service that monitors multiple stock markets, performs comprehensive analysis using real Yahoo Finance data, and delivers actionable investment recommendations through multiple communication channels including Telegram, Slack, and Email.
+A comprehensive stock market analysis system with intraday monitoring, automated trading simulation, and multi-channel notifications. Monitors China, Hong Kong, and USA markets using real Yahoo Finance data.
 
-## Features
+## Quick Start
 
-- **Multi-Market Monitoring**: Supports China, Hong Kong, and USA markets with real-time Yahoo Finance data
-- **Comprehensive Analysis**: 
-  - Technical indicators (RSI, MACD)
-  - Fundamental analysis (P/E ratio, earnings growth, revenue growth)
-  - Volume analysis (accumulation/distribution patterns)
-  - Sentiment analysis (market sentiment from news)
-  - Pattern recognition (support/resistance, chart patterns)
-- **Intelligent Recommendations**: Generates buy/sell/hold recommendations with detailed rationale and risk assessment
-- **Configurable Stock Selection**: Focus on specific industries (AI, semiconductors, power, resources)
-- **Flexible Report Formatting**:
-  - Configurable rationale truncation for concise Telegram messages
-  - Limit number of recommendations sent to Telegram (full report always saved to disk)
-  - Top N recommendations show full details with URLs
-- **Multi-Channel Delivery**: Delivers reports via Telegram, Slack, and Email
-- **Configurable Scheduling**: Automated daily analysis with customizable timing
-- **Graceful Error Handling**: Continues operation even when individual components fail
-- **Comprehensive Logging**: Full audit trail of all operations
+```bash
+# Start the complete system (analysis + web dashboard)
+python start_system.py
+
+# Or use the batch file
+start.bat
+
+# Access the dashboard
+http://localhost:5000
+```
+
+For detailed setup instructions, see **[docs/STARTUP_GUIDE.md](docs/STARTUP_GUIDE.md)**
+
+## Key Features
+
+- **Intraday Market Monitoring**: Hourly analysis during market hours with automatic trading
+- **Trading Simulation**: Virtual portfolio with performance tracking and backtesting
+- **Web Dashboard**: Real-time portfolio, trades, and recommendations at http://localhost:5000
+- **Multi-Market Support**: China, Hong Kong, and USA markets with timezone-aware scheduling
+- **Comprehensive Analysis**: Technical, fundamental, volume, sentiment, and pattern recognition
+- **Intelligent Recommendations**: Buy/sell/hold with confidence scores and detailed rationale
+- **Multi-Channel Notifications**: Telegram, Slack, and Email delivery
+- **Automated Scheduling**: Daily analysis and intraday monitoring during market hours
+
+## Documentation
+
+All documentation has been moved to the **[docs/](docs/)** folder:
+
+- **[Startup Guide](docs/STARTUP_GUIDE.md)** - How to run the system
+- **[Algorithm Guide](docs/ALGORITHM_README.md)** - Analysis algorithm details
+- **[Comprehensive Guide](docs/COMPREHENSIVE_ANALYSIS_GUIDE.md)** - Complete feature documentation
+- **[Web Dashboard](docs/WEB_DASHBOARD_README.md)** - Dashboard usage
+- **[Trading Guide](docs/TRADING_TRIGGER_GUIDE.md)** - Manual trading
+- **[Report Formatting](docs/REPORT_FORMATTING_GUIDE.md)** - Report configuration
 
 ## Architecture
 
-The system follows a pipeline architecture with five core components:
+The system follows a pipeline architecture with core components:
 
 1. **Market_Monitor**: Collects stock market data from configured regions
 2. **Analysis_Engine**: Performs stock analysis and generates recommendations

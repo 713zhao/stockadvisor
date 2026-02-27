@@ -148,3 +148,64 @@ logging:
   file: logs/stock_analysis.log
   max_size_mb: 100
   backup_count: 5
+
+# Intraday monitoring configuration
+intraday_monitoring:
+  # Enable hourly monitoring during market hours
+  enabled: true
+  
+  # Monitoring interval in minutes (15-240)
+  # How often to run analysis during market hours
+  monitoring_interval_minutes: 60
+  
+  # Regional markets to monitor during intraday hours
+  # Options: china, hong_kong, usa
+  monitored_regions:
+    - china
+    - hong_kong
+    - usa
+  
+  # Market holidays (markets closed on these dates)
+  market_holidays:
+    china:
+      - "2024-01-01"  # New Year's Day
+      - "2024-02-10"  # Spring Festival (Lunar New Year)
+      - "2024-02-11"  # Spring Festival
+      - "2024-02-12"  # Spring Festival
+      - "2024-04-04"  # Qingming Festival
+      - "2024-05-01"  # Labor Day
+      - "2024-06-10"  # Dragon Boat Festival
+      - "2024-09-15"  # Mid-Autumn Festival
+      - "2024-10-01"  # National Day
+      - "2024-10-02"  # National Day
+      - "2024-10-03"  # National Day
+    
+    hong_kong:
+      - "2024-01-01"  # New Year's Day
+      - "2024-02-10"  # Lunar New Year
+      - "2024-02-12"  # Lunar New Year
+      - "2024-02-13"  # Lunar New Year
+      - "2024-03-29"  # Good Friday
+      - "2024-04-01"  # Easter Monday
+      - "2024-04-04"  # Ching Ming Festival
+      - "2024-05-01"  # Labor Day
+      - "2024-05-15"  # Buddha's Birthday
+      - "2024-06-10"  # Dragon Boat Festival
+      - "2024-07-01"  # Hong Kong SAR Establishment Day
+      - "2024-09-18"  # Day after Mid-Autumn Festival
+      - "2024-10-01"  # National Day
+      - "2024-10-11"  # Chung Yeung Festival
+      - "2024-12-25"  # Christmas Day
+      - "2024-12-26"  # Boxing Day
+    
+    usa:
+      - "2024-01-01"  # New Year's Day
+      - "2024-01-15"  # Martin Luther King Jr. Day
+      - "2024-02-19"  # Presidents' Day
+      - "2024-03-29"  # Good Friday
+      - "2024-05-27"  # Memorial Day
+      - "2024-06-19"  # Juneteenth
+      - "2024-07-04"  # Independence Day
+      - "2024-09-02"  # Labor Day
+      - "2024-11-28"  # Thanksgiving Day
+      - "2024-12-25"  # Christmas Day

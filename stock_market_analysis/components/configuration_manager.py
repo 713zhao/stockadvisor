@@ -527,3 +527,181 @@ class ConfigurationManager:
                     f"Invalid position_size_value for percentage strategy: "
                     f"must be between 0.01 and 1.0, got {value}"
                 )
+
+
+    def get_intraday_config(self) -> dict:
+        """
+        Returns intraday monitoring configuration.
+
+        Returns:
+            Dictionary with:
+            - enabled: bool
+            - monitoring_interval_minutes: int (15-240)
+            - monitored_regions: List[str]
+        """
+        try:
+            if not self.storage_path.exists():
+                return self._get_default_intraday_config()
+
+            file_extension = self.storage_path.suffix.lower()
+
+            with open(self.storage_path, 'r') as f:
+                if file_extension in ['.yaml', '.yml']:
+                    config_dict = yaml.safe_load(f)
+                else:
+                    config_dict = json.load(f)
+
+            if not config_dict or 'intraday_monitoring' not in config_dict:
+                return self._get_default_intraday_config()
+
+            intraday_config = config_dict['intraday_monitoring']
+
+            # Validate configuration
+            self._validate_intraday_config(intraday_config)
+
+            return intraday_config
+
+        except Exception as e:
+            self.logger.warning(f"Failed to load intraday config: {e}, using defaults")
+            return self._get_default_intraday_config()
+
+    def get_market_holidays(self, region: MarketRegion) -> List[str]:
+        """
+        Returns list of market holidays for a region.
+
+        Args:
+            region: Market region
+
+        Returns:
+            List of dates in YYYY-MM-DD format
+        """
+        try:
+            if not self.storage_path.exists():
+                return []
+
+            file_extension = self.storage_path.suffix.lower()
+
+            with open(self.storage_path, 'r') as f:
+                if file_extension in ['.yaml', '.yml']:
+                    config_dict = yaml.safe_load(f)
+                else:
+                    config_dict = json.load(f)
+
+            if not config_dict or 'intraday_monitoring' not in config_dict:
+                return []
+
+            intraday_config = config_dict['intraday_monitoring']
+            market_holidays = intraday_config.get('market_holidays', {})
+
+            region_key = region.value
+            return market_holidays.get(region_key, [])
+
+        except Exception as e:
+            self.logger.warning(f"Failed to load market holidays for {region.value}: {e}")
+            return []
+
+    def set_intraday_config(
+        self,
+        enabled: bool,
+        interval_minutes: int,
+        regions: List[MarketRegion]
+    ) -> Result:
+        """
+        Set intraday monitoring configuration.
+
+        Args:
+            enabled: Whether intraday monitoring is enabled
+            interval_minutes: Monitoring interval in minutes (15-240)
+            regions: List of market regions to monitor
+
+        Returns:
+            Result indicating success or failure
+        """
+        try:
+            # Validate interval
+            if interval_minutes < 15 or interval_minutes > 240:
+                return Result.err(
+                    f"Monitoring interval must be between 15 and 240 minutes, got {interval_minutes}"
+                )
+
+            # Validate at least one region
+            if not regions:
+                return Result.err("At least one region must be specified")
+
+            # Load current configuration
+            if self.storage_path.exists():
+                file_extension = self.storage_path.suffix.lower()
+                with open(self.storage_path, 'r') as f:
+                    if file_extension in ['.yaml', '.yml']:
+                        config_dict = yaml.safe_load(f) or {}
+                    else:
+                        config_dict = json.load(f)
+            else:
+                config_dict = {}
+
+            # Update intraday configuration
+            config_dict['intraday_monitoring'] = {
+                'enabled': enabled,
+                'monitoring_interval_minutes': interval_minutes,
+                'monitored_regions': [r.value for r in regions],
+                'market_holidays': config_dict.get('intraday_monitoring', {}).get('market_holidays', {})
+            }
+
+            # Save configuration
+            self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.storage_path, 'w') as f:
+                if file_extension in ['.yaml', '.yml']:
+                    yaml.dump(config_dict, f, default_flow_style=False)
+                else:
+                    json.dump(config_dict, f, indent=2)
+
+            self.logger.info(f"Updated intraday monitoring configuration: enabled={enabled}, interval={interval_minutes}min")
+            return Result.ok()
+
+        except Exception as e:
+            error_msg = f"Failed to set intraday configuration: {e}"
+            self.logger.error(error_msg)
+            return Result.err(error_msg)
+
+    def _get_default_intraday_config(self) -> dict:
+        """Returns default intraday monitoring configuration."""
+        return {
+            'enabled': False,
+            'monitoring_interval_minutes': 60,
+            'monitored_regions': []
+        }
+
+    def _validate_intraday_config(self, config: dict) -> None:
+        """
+        Validates intraday monitoring configuration.
+
+        Args:
+            config: Intraday configuration dictionary
+
+        Raises:
+            ValueError: If configuration is invalid
+        """
+        # Validate monitoring interval
+        if 'monitoring_interval_minutes' in config:
+            interval = config['monitoring_interval_minutes']
+            if not isinstance(interval, int) or interval < 15 or interval > 240:
+                raise ValueError(
+                    f"monitoring_interval_minutes must be between 15 and 240, got {interval}"
+                )
+
+        # Validate enabled flag
+        if 'enabled' in config:
+            if not isinstance(config['enabled'], bool):
+                raise ValueError("enabled must be a boolean")
+
+        # Validate monitored regions
+        if 'monitored_regions' in config:
+            regions = config['monitored_regions']
+            if not isinstance(regions, list):
+                raise ValueError("monitored_regions must be a list")
+
+            valid_regions = {r.value for r in MarketRegion}
+            for region in regions:
+                if region not in valid_regions:
+                    raise ValueError(f"Invalid region: {region}. Must be one of {valid_regions}")
+

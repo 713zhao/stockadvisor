@@ -43,7 +43,10 @@ class TradeHistory:
         """
         self._trades.append(trade)
         self._save_trades()
-        self.logger.info(f"Trade recorded: {trade.action.value} {trade.quantity} {trade.symbol} @ {trade.price}")
+        
+        # Log with stock name if available
+        name_str = f" ({trade.stock_name})" if trade.stock_name else ""
+        self.logger.info(f"Trade recorded: {trade.action.value} {trade.quantity} {trade.symbol}{name_str} @ {trade.price}")
     
     def get_trades_by_portfolio(self, portfolio_id: str) -> List[Trade]:
         """

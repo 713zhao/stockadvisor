@@ -7,6 +7,20 @@
     "quantity": 100,
     "price": "150.00",
     "timestamp": "2026-02-27T13:52:33.755746",
-    "recommendation_id": null
+    "recommendation_id": null,
+    "stock_name": null,
+    "rationale": null
+  },
+  {
+    "trade_id": "trade-001",
+    "portfolio_id": "test-123",
+    "symbol": "AAPL",
+    "action": "BUY",
+    "quantity": 100,
+    "price": "150.00",
+    "timestamp": "2026-02-28T00:23:04.497524",
+    "recommendation_id": null,
+    "stock_name": null,
+    "rationale": null
   }
 ]

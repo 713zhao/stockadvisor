@@ -178,5 +178,155 @@
     "price": "149.5340",
     "timestamp": "2026-02-27T14:37:07.190712",
     "recommendation_id": null
+  },
+  {
+    "trade_id": "442fd43a-2747-4651-96d3-2559e89471e7",
+    "portfolio_id": "27e2ba5e-ab56-406a-9049-8881db563c52",
+    "symbol": "688981.SS",
+    "action": "BUY",
+    "quantity": 79,
+    "price": "126.4340",
+    "timestamp": "2026-02-27T14:39:50.231213",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "a264703c-26be-4e42-9eef-07ad5dc1022e",
+    "portfolio_id": "27e2ba5e-ab56-406a-9049-8881db563c52",
+    "symbol": "600900.SS",
+    "action": "BUY",
+    "quantity": 322,
+    "price": "28.6550",
+    "timestamp": "2026-02-27T14:39:50.258764",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "c2529ada-b813-4941-9892-04650193a90b",
+    "portfolio_id": "27e2ba5e-ab56-406a-9049-8881db563c52",
+    "symbol": "0700.HK",
+    "action": "BUY",
+    "quantity": 54,
+    "price": "575.850",
+    "timestamp": "2026-02-27T14:39:50.293047",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "c764e073-b1a5-4bfc-9f63-9ea7a785a77d",
+    "portfolio_id": "27e2ba5e-ab56-406a-9049-8881db563c52",
+    "symbol": "9988.HK",
+    "action": "BUY",
+    "quantity": 76,
+    "price": "159.060",
+    "timestamp": "2026-02-27T14:39:50.303112",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "2ec3257a-8e08-44c0-ace5-1f81ddd1e34e",
+    "portfolio_id": "27e2ba5e-ab56-406a-9049-8881db563c52",
+    "symbol": "1810.HK",
+    "action": "BUY",
+    "quantity": 150,
+    "price": "38.500",
+    "timestamp": "2026-02-27T14:39:50.313657",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "5126fbcc-7c0c-414e-85ad-d3918104f27b",
+    "portfolio_id": "27e2ba5e-ab56-406a-9049-8881db563c52",
+    "symbol": "2382.HK",
+    "action": "BUY",
+    "quantity": 117,
+    "price": "64.1850",
+    "timestamp": "2026-02-27T14:39:50.323563",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "43456509-4f50-4d8c-9322-a7639823ac48",
+    "portfolio_id": "27e2ba5e-ab56-406a-9049-8881db563c52",
+    "symbol": "PLTR",
+    "action": "BUY",
+    "quantity": 96,
+    "price": "149.5340",
+    "timestamp": "2026-02-27T14:39:50.414352",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "1aaed4f8-1331-44c8-9292-3939cb54d30c",
+    "portfolio_id": "1cd39133-4361-4a72-9c9c-b619a41774de",
+    "symbol": "688981.SS",
+    "action": "BUY",
+    "quantity": 79,
+    "price": "126.4120",
+    "timestamp": "2026-02-27T15:06:12.049482",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "f20c5714-8483-4f7e-a7c5-0f4fcfac41d0",
+    "portfolio_id": "1cd39133-4361-4a72-9c9c-b619a41774de",
+    "symbol": "600900.SS",
+    "action": "BUY",
+    "quantity": 321,
+    "price": "28.6880",
+    "timestamp": "2026-02-27T15:06:12.081472",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "343b8c57-2b6c-420d-93d7-ec2881845de9",
+    "portfolio_id": "1cd39133-4361-4a72-9c9c-b619a41774de",
+    "symbol": "0700.HK",
+    "action": "BUY",
+    "quantity": 54,
+    "price": "576.400",
+    "timestamp": "2026-02-27T15:06:12.122471",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "8d3eea03-00e5-4a49-b5cf-90d4812aa545",
+    "portfolio_id": "1cd39133-4361-4a72-9c9c-b619a41774de",
+    "symbol": "9988.HK",
+    "action": "BUY",
+    "quantity": 76,
+    "price": "159.170",
+    "timestamp": "2026-02-27T15:06:12.136023",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "108d4fe5-1585-4eee-af31-84d98d2b65b3",
+    "portfolio_id": "1cd39133-4361-4a72-9c9c-b619a41774de",
+    "symbol": "1810.HK",
+    "action": "BUY",
+    "quantity": 150,
+    "price": "38.5220",
+    "timestamp": "2026-02-27T15:06:12.150895",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "3e5a4081-2dd4-4e2c-bde6-0d450e789758",
+    "portfolio_id": "1cd39133-4361-4a72-9c9c-b619a41774de",
+    "symbol": "2382.HK",
+    "action": "BUY",
+    "quantity": 117,
+    "price": "64.1850",
+    "timestamp": "2026-02-27T15:06:12.164068",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "defe9d68-0bfb-4505-96b2-3701b3202e7b",
+    "portfolio_id": "1cd39133-4361-4a72-9c9c-b619a41774de",
+    "symbol": "0386.HK",
+    "action": "BUY",
+    "quantity": 483,
+    "price": "6.0170",
+    "timestamp": "2026-02-27T15:06:12.193352",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "f1a5cb7f-aaab-4850-8114-c4fbcedd0cf0",
+    "portfolio_id": "1cd39133-4361-4a72-9c9c-b619a41774de",
+    "symbol": "PLTR",
+    "action": "BUY",
+    "quantity": 142,
+    "price": "149.5340",
+    "timestamp": "2026-02-27T15:06:12.261272",
+    "recommendation_id": null
   }
 ]

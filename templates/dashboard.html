@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Analysis & Trading Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .stat-value.positive {
+            color: #27ae60;
+        }
+        
+        .stat-value.negative {
+            color: #e74c3c;
+        }
+        
+        .section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .badge-buy {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-sell {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Tooltip styles */
+        .tooltip-cell {
+            position: relative;
+        }
+        
+        .tooltip-row {
+            cursor: help;
+        }
+        
+        .tooltip-row .tooltip-text {
+            visibility: hidden;
+            width: 400px;
+            background-color: #2c3e50;
+            color: #fff;
+            text-align: left;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -200px;
+            margin-bottom: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        
+        .tooltip-row .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #2c3e50 transparent transparent transparent;
+        }
+        
+        .tooltip-row:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .tooltip-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Stock Market Analysis & Trading Dashboard</h1>
+        <p>Real-time portfolio monitoring and trade history</p>
+    </div>
+    
+    <div class="container">
+        <!-- Stats Overview -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Portfolio Value</div>
+                <div class="stat-value" id="portfolio-value">Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Cash Balance</div>
+                <div class="stat-value" id="cash-balance">Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total P&L</div>
+                <div class="stat-value" id="total-pnl">Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Return</div>
+                <div class="stat-value" id="total-return">Loading...</div>
+            </div>
+        </div>
+        
+        <!-- Main Content Tabs -->
+        <div class="section">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('positions')">Positions</button>
+                <button class="tab" onclick="showTab('trades')">Trade History</button>
+                <button class="tab" onclick="showTab('performance')">Performance</button>
+                <button class="tab" onclick="showTab('reports')">Reports</button>
+            </div>
+            
+            <!-- Positions Tab -->
+            <div id="positions-tab" class="tab-content active">
+                <h2 class="section-title">Open Positions</h2>
+                <div id="positions-content">
+                    <div class="loading">Loading positions...</div>
+                </div>
+            </div>
+            
+            <!-- Trades Tab -->
+            <div id="trades-tab" class="tab-content">
+                <h2 class="section-title">Recent Trades</h2>
+                <div id="trades-content">
+                    <div class="loading">Loading trades...</div>
+                </div>
+            </div>
+            
+            <!-- Performance Tab -->
+            <div id="performance-tab" class="tab-content">
+                <h2 class="section-title">Performance Metrics</h2>
+                <div id="performance-content">
+                    <div class="loading">Loading performance...</div>
+                </div>
+            </div>
+            
+            <!-- Reports Tab -->
+            <div id="reports-tab" class="tab-content">
+                <h2 class="section-title">Analysis Reports</h2>
+                <div id="reports-content">
+                    <div class="loading">Loading reports...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <button class="refresh-btn" onclick="loadAllData()">🔄 Refresh Data</button>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2
+            }).format(value);
+        }
+        
+        // Format percentage
+        function formatPercent(value) {
+            return value.toFixed(2) + '%';
+        }
+        
+        // Load portfolio data
+        async function loadPortfolio() {
+            try {
+                const response = await fetch('/api/portfolio');
+                const data = await response.json();
+                
+                document.getElementById('portfolio-value').textContent = formatCurrency(data.portfolio_value);
+                document.getElementById('cash-balance').textContent = formatCurrency(data.cash_balance);
+                
+                const pnlElement = document.getElementById('total-pnl');
+                pnlElement.textContent = formatCurrency(data.total_pnl);
+                pnlElement.className = 'stat-value ' + (data.total_pnl >= 0 ? 'positive' : 'negative');
+                
+                const returnElement = document.getElementById('total-return');
+                returnElement.textContent = formatPercent(data.total_return_pct);
+                returnElement.className = 'stat-value ' + (data.total_return_pct >= 0 ? 'positive' : 'negative');
+                
+                // Load positions
+                loadPositions(data.positions);
+            } catch (error) {
+                console.error('Error loading portfolio:', error);
+            }
+        }
+        
+        // Load positions
+        function loadPositions(positions) {
+            const content = document.getElementById('positions-content');
+            
+            if (positions.length === 0) {
+                content.innerHTML = '<p>No open positions</p>';
+                return;
+            }
+            
+            let html = '<table><thead><tr><th>Symbol</th><th>Stock Name</th><th>Quantity</th><th>Avg Cost</th><th>Current Value</th></tr></thead><tbody>';
+            
+            positions.forEach(pos => {
+                html += `
+                    <tr>
+                        <td><strong><a href="${pos.yahoo_url}" target="_blank" style="color: #2563eb; text-decoration: none;">${pos.symbol}</a></strong></td>
+                        <td>${pos.stock_name}</td>
+                        <td>${pos.quantity}</td>
+                        <td>${formatCurrency(pos.average_cost)}</td>
+                        <td>${formatCurrency(pos.current_value)}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            content.innerHTML = html;
+        }
+        
+        // Load trades
+        async function loadTrades() {
+            try {
+                const response = await fetch('/api/trades?limit=50');
+                const data = await response.json();
+                const content = document.getElementById('trades-content');
+                
+                if (data.trades.length === 0) {
+                    content.innerHTML = '<p>No trades yet</p>';
+                    return;
+                }
+                
+                let html = '<table><thead><tr><th>Date/Time</th><th>Action</th><th>Symbol</th><th>Stock Name</th><th>Quantity</th><th>Price</th><th>Total</th></tr></thead><tbody>';
+                
+                data.trades.forEach(trade => {
+                    const date = new Date(trade.timestamp);
+                    const stockName = trade.stock_name || '-';
+                    const rationale = trade.rationale || 'No rationale available';
+                    html += `
+                        <tr class="tooltip-row">
+                            <td class="tooltip-cell">
+                                ${date.toLocaleString()}
+                                <span class="tooltip-text">
+                                    <div class="tooltip-label">Trade Rationale:</div>
+                                    ${rationale}
+                                </span>
+                            </td>
+                            <td><span class="badge badge-${trade.action.toLowerCase()}">${trade.action}</span></td>
+                            <td><strong><a href="${trade.yahoo_url}" target="_blank" style="color: #2563eb; text-decoration: none;">${trade.symbol}</a></strong></td>
+                            <td>${stockName}</td>
+                            <td>${trade.quantity}</td>
+                            <td>${formatCurrency(trade.price)}</td>
+                            <td>${formatCurrency(trade.total)}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                content.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading trades:', error);
+                document.getElementById('trades-content').innerHTML = '<div class="error">Error loading trades</div>';
+            }
+        }
+        
+        // Load performance
+        async function loadPerformance() {
+            try {
+                const response = await fetch('/api/performance');
+                const data = await response.json();
+                const content = document.getElementById('performance-content');
+                
+                let html = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Realized P&L</div>
+                            <div class="stat-value ${data.realized_pnl >= 0 ? 'positive' : 'negative'}">${formatCurrency(data.realized_pnl)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Unrealized P&L</div>
+                            <div class="stat-value ${data.unrealized_pnl >= 0 ? 'positive' : 'negative'}">${formatCurrency(data.unrealized_pnl)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Win Rate</div>
+                            <div class="stat-value">${formatPercent(data.win_rate)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Total Trades</div>
+                            <div class="stat-value">${data.total_trades}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Avg Profit/Win</div>
+                            <div class="stat-value positive">${formatCurrency(data.avg_profit_per_win)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Avg Loss/Loss</div>
+                            <div class="stat-value negative">${formatCurrency(data.avg_loss_per_loss)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Max Drawdown</div>
+                            <div class="stat-value negative">${formatPercent(data.max_drawdown)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Open Positions</div>
+                            <div class="stat-value">${data.total_positions}</div>
+                        </div>
+                    </div>
+                `;
+                
+                content.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading performance:', error);
+                document.getElementById('performance-content').innerHTML = '<div class="error">Error loading performance</div>';
+            }
+        }
+        
+        // Load reports
+        async function loadReports() {
+            try {
+                const response = await fetch('/api/reports');
+                const data = await response.json();
+                const content = document.getElementById('reports-content');
+                
+                if (data.reports.length === 0) {
+                    content.innerHTML = '<p>No reports available</p>';
+                    return;
+                }
+                
+                let html = '<table><thead><tr><th>Date</th><th>Report ID</th><th>Recommendations</th><th>Generated</th></tr></thead><tbody>';
+                
+                data.reports.forEach(report => {
+                    const date = new Date(report.date);
+                    const genTime = new Date(report.generation_time);
+                    html += `
+                        <tr>
+                            <td>${date.toLocaleDateString()}</td>
+                            <td><code>${report.report_id.substring(0, 16)}...</code></td>
+                            <td>${report.recommendations_count}</td>
+                            <td>${genTime.toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                content.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading reports:', error);
+                document.getElementById('reports-content').innerHTML = '<div class="error">Error loading reports</div>';
+            }
+        }
+        
+        // Load all data
+        function loadAllData() {
+            loadPortfolio();
+            loadTrades();
+            loadPerformance();
+            loadReports();
+        }
+        
+        // Initial load
+        loadAllData();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadAllData, 30000);
+    </script>
+</body>
+</html>

@@ -41,7 +41,7 @@ class TradingSimulator:
         self.config_manager = config_manager
         self.logger = logging.getLogger(__name__)
         
-        # Initialize trade history
+        # Initialize trade history (automatically loads from disk)
         self.trade_history = TradeHistory()
         
         # Portfolio storage
@@ -293,3 +293,28 @@ class TradingSimulator:
             raise ValueError(f"Portfolio {portfolio_id} not found")
         
         return self.portfolios[portfolio_id]
+    def save_trade_history(self, filepath: str) -> None:
+        """
+        Saves trade history to file.
+
+        Args:
+            filepath: Path to save file
+        """
+        # Ensure directory exists
+        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
+
+        # Save to file
+        self.trade_history.save_to_file(filepath)
+
+        self.logger.info(f"Saved trade history to {filepath}")
+
+    def load_trade_history(self, filepath: str) -> None:
+        """
+        Loads trade history from file.
+
+        Args:
+            filepath: Path to load file
+        """
+        self.trade_history.load_from_file(filepath)
+
+        self.logger.info(f"Loaded trade history from {filepath}")

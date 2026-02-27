@@ -22,6 +22,9 @@ numpy>=1.24.0
 pandas>=2.0.0
 yfinance>=1.2.0
 
+# For web dashboard
+flask>=2.3.0
+
 # Development dependencies
 pytest-cov>=4.0.0
 black>=22.0.0

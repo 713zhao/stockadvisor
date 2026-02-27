@@ -7,6 +7,7 @@ This module wires all components together and provides the main application entr
 import logging
 import sys
 import signal
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -27,6 +28,11 @@ from stock_market_analysis.components import (
     EventStatus
 )
 from stock_market_analysis.components.yahoo_finance_api import YahooFinanceAPI
+from stock_market_analysis.components.intraday import (
+    IntradayMonitor,
+    TimezoneConverter,
+    MarketHoursDetector
+)
 from stock_market_analysis.trading import TradingSimulator, TradingIntegration
 from decimal import Decimal
 
@@ -60,6 +66,7 @@ class StockMarketAnalysisSystem:
         self.trading_simulator: Optional[TradingSimulator] = None
         self.trading_integration: Optional[TradingIntegration] = None
         self.default_portfolio_id: Optional[str] = None
+        self.intraday_monitor: Optional[IntradayMonitor] = None
         
         # System state
         self._running = False
@@ -90,14 +97,26 @@ class StockMarketAnalysisSystem:
             )
             self.logger.info("Analysis engine initialized")
             
-            # Initialize trading simulator
+            # Initialize trading simulator (trade history loads automatically)
             self.trading_simulator = TradingSimulator(config_manager=self.config_manager)
             self.logger.info("Trading simulator initialized")
             
-            # Create default portfolio
-            initial_cash = Decimal(str(self.config_manager.get_initial_cash_balance()))
-            self.default_portfolio_id = self.trading_simulator.create_portfolio(initial_cash)
-            self.logger.info(f"Created default portfolio {self.default_portfolio_id} with ${initial_cash:,.2f}")
+            # Load or create default portfolio
+            default_portfolio_file = Path("data/default_portfolio.json")
+            if default_portfolio_file.exists():
+                try:
+                    self.default_portfolio_id = self.trading_simulator.load_portfolio(str(default_portfolio_file))
+                    portfolio = self.trading_simulator.get_portfolio(self.default_portfolio_id)
+                    self.logger.info(f"Loaded existing portfolio {self.default_portfolio_id} with ${portfolio.cash_balance:,.2f} cash")
+                except Exception as e:
+                    self.logger.warning(f"Failed to load portfolio from {default_portfolio_file}: {e}")
+                    initial_cash = Decimal(str(self.config_manager.get_initial_cash_balance()))
+                    self.default_portfolio_id = self.trading_simulator.create_portfolio(initial_cash)
+                    self.logger.info(f"Created new portfolio {self.default_portfolio_id} with ${initial_cash:,.2f}")
+            else:
+                initial_cash = Decimal(str(self.config_manager.get_initial_cash_balance()))
+                self.default_portfolio_id = self.trading_simulator.create_portfolio(initial_cash)
+                self.logger.info(f"Created new portfolio {self.default_portfolio_id} with ${initial_cash:,.2f}")
             
             # Initialize trading integration
             self.trading_integration = TradingIntegration(
@@ -127,6 +146,41 @@ class StockMarketAnalysisSystem:
             configured_regions = self.config_manager.get_configured_regions()
             self.scheduler.schedule_daily_analysis(configured_regions)
             self.logger.info(f"Scheduler configured for regions: {[r.value for r in configured_regions]}")
+            
+            # Initialize intraday monitoring if enabled
+            intraday_config = self.config_manager.get_intraday_config()
+            if intraday_config.get('enabled', False):
+                self.logger.info("Initializing intraday monitoring...")
+                
+                # Get portfolio and trade history for intraday trading
+                portfolio = self.trading_simulator.get_portfolio(self.default_portfolio_id)
+                trade_history = self.trading_simulator.trade_history
+                
+                # Create a trade executor for intraday monitoring
+                from stock_market_analysis.trading.trade_executor import TradeExecutor
+                trade_executor = TradeExecutor(
+                    portfolio=portfolio,
+                    trade_history=trade_history,
+                    config=self.config_manager.get_trading_config()
+                )
+                
+                # Initialize intraday components
+                timezone_converter = TimezoneConverter()
+                market_hours_detector = MarketHoursDetector(
+                    timezone_converter=timezone_converter,
+                    config_manager=self.config_manager
+                )
+                
+                self.intraday_monitor = IntradayMonitor(
+                    market_hours_detector=market_hours_detector,
+                    analysis_engine=self.analysis_engine,
+                    trade_executor=trade_executor,
+                    config_manager=self.config_manager
+                )
+                
+                self.logger.info("Intraday monitoring initialized")
+            else:
+                self.logger.info("Intraday monitoring is disabled in configuration")
             
             # Log system initialization event
             if self.system_logger:
@@ -190,6 +244,12 @@ class StockMarketAnalysisSystem:
                     recommendations
                 )
                 self.logger.info(f"Executed {len(executed_trades)} trades")
+                
+                # Save portfolio state after trades (trade history saves automatically)
+                if executed_trades:
+                    default_portfolio_file = Path("data/default_portfolio.json")
+                    self.trading_simulator.save_portfolio(self.default_portfolio_id, str(default_portfolio_file))
+                    self.logger.info(f"Saved portfolio state to {default_portfolio_file}")
                 
                 # Get performance report
                 performance_report = self.trading_simulator.get_performance_report(
@@ -326,6 +386,12 @@ class StockMarketAnalysisSystem:
         self._running = True
         self.logger.info("Stock Market Analysis system started")
         
+        # Start intraday monitoring if enabled
+        if self.intraday_monitor:
+            self.logger.info("Starting intraday monitoring...")
+            self.intraday_monitor.start_monitoring()
+            self.logger.info("Intraday monitoring started")
+        
         # Get next execution time
         next_execution = self.scheduler.get_next_execution_time()
         if next_execution:
@@ -342,6 +408,12 @@ class StockMarketAnalysisSystem:
         
         self.logger.info("Shutting down Stock Market Analysis system...")
         self._running = False
+        
+        # Stop intraday monitoring if running
+        if self.intraday_monitor:
+            self.logger.info("Stopping intraday monitoring...")
+            self.intraday_monitor.stop_monitoring()
+            self.logger.info("Intraday monitoring stopped")
         
         if self.system_logger:
             self.system_logger.log_event(
@@ -406,11 +478,23 @@ def main():
     # Start system
     try:
         system.start()
+        
+        # If intraday monitoring is enabled, keep the system running
+        if system.intraday_monitor:
+            logger.info("System running with intraday monitoring. Press Ctrl+C to stop...")
+            try:
+                while True:
+                    time.sleep(60)  # Check every minute
+            except KeyboardInterrupt:
+                logger.info("Received interrupt signal, shutting down...")
+        
     except Exception as e:
         logger.error(f"System error: {e}", exc_info=True)
         system.shutdown()
         sys.exit(1)
     
+    # Shutdown gracefully
+    system.shutdown()
     logger.info("System execution complete")
 
 

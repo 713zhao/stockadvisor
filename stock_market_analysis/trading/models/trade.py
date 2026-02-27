@@ -30,6 +30,8 @@ class Trade:
         price: Price per share
         timestamp: When the trade was executed
         recommendation_id: Optional ID of the recommendation that triggered this trade
+        stock_name: Optional human-readable stock name
+        rationale: Optional reason for the trade decision
     """
     
     trade_id: str
@@ -40,6 +42,8 @@ class Trade:
     price: Decimal
     timestamp: datetime = field(default_factory=datetime.now)
     recommendation_id: Optional[str] = None
+    stock_name: Optional[str] = None
+    rationale: Optional[str] = None
     
     def calculate_total_cost(self) -> Decimal:
         """
@@ -74,7 +78,9 @@ class Trade:
             'quantity': self.quantity,
             'price': str(self.price),
             'timestamp': self.timestamp.isoformat(),
-            'recommendation_id': self.recommendation_id
+            'recommendation_id': self.recommendation_id,
+            'stock_name': self.stock_name,
+            'rationale': self.rationale
         }
     
     def to_json(self) -> str:
@@ -113,7 +119,9 @@ class Trade:
             quantity=data['quantity'],
             price=Decimal(data['price']),
             timestamp=datetime.fromisoformat(data['timestamp']),
-            recommendation_id=data.get('recommendation_id')
+            recommendation_id=data.get('recommendation_id'),
+            stock_name=data.get('stock_name'),
+            rationale=data.get('rationale')
         )
     
     @classmethod

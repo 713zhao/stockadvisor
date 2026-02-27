@@ -1,0 +1,48 @@
+{
+  "portfolio_id": "1cd39133-4361-4a72-9c9c-b619a41774de",
+  "cash_balance": "154.1000",
+  "initial_cash_balance": "100000.00",
+  "creation_timestamp": "2026-02-27T14:59:08.188692",
+  "positions": {
+    "688981.SS": {
+      "symbol": "688981.SS",
+      "quantity": 79,
+      "average_cost_basis": "126.4120"
+    },
+    "600900.SS": {
+      "symbol": "600900.SS",
+      "quantity": 321,
+      "average_cost_basis": "28.6880"
+    },
+    "0700.HK": {
+      "symbol": "0700.HK",
+      "quantity": 54,
+      "average_cost_basis": "576.400"
+    },
+    "9988.HK": {
+      "symbol": "9988.HK",
+      "quantity": 76,
+      "average_cost_basis": "159.170"
+    },
+    "1810.HK": {
+      "symbol": "1810.HK",
+      "quantity": 150,
+      "average_cost_basis": "38.5220"
+    },
+    "2382.HK": {
+      "symbol": "2382.HK",
+      "quantity": 117,
+      "average_cost_basis": "64.1850"
+    },
+    "0386.HK": {
+      "symbol": "0386.HK",
+      "quantity": 483,
+      "average_cost_basis": "6.0170"
+    },
+    "PLTR": {
+      "symbol": "PLTR",
+      "quantity": 142,
+      "average_cost_basis": "149.5340"
+    }
+  }
+}

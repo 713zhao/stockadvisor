@@ -90,7 +90,9 @@ class TradeExecutor:
         symbol: str,
         quantity: int,
         price: Decimal,
-        recommendation_id: Optional[str] = None
+        recommendation_id: Optional[str] = None,
+        stock_name: Optional[str] = None,
+        rationale: Optional[str] = None
     ) -> Trade:
         """
         Executes a buy order.
@@ -100,6 +102,8 @@ class TradeExecutor:
             quantity: Number of shares to buy
             price: Price per share
             recommendation_id: Optional recommendation ID
+            stock_name: Optional human-readable stock name
+            rationale: Optional reason for the trade
             
         Returns:
             Trade object representing the executed trade
@@ -146,13 +150,17 @@ class TradeExecutor:
             quantity=quantity,
             price=price,
             timestamp=datetime.now(),
-            recommendation_id=recommendation_id
+            recommendation_id=recommendation_id,
+            stock_name=stock_name,
+            rationale=rationale
         )
         
         # Record in history
         self.trade_history.add_trade(trade)
         
-        self.logger.info(f"Executed BUY: {quantity} {symbol_upper} @ ${price}")
+        # Log with stock name if available
+        name_str = f" ({stock_name})" if stock_name else ""
+        self.logger.info(f"Executed BUY: {quantity} {symbol_upper}{name_str} @ ${price}")
         
         return trade
     
@@ -161,7 +169,9 @@ class TradeExecutor:
         symbol: str,
         quantity: int,
         price: Decimal,
-        recommendation_id: Optional[str] = None
+        recommendation_id: Optional[str] = None,
+        stock_name: Optional[str] = None,
+        rationale: Optional[str] = None
     ) -> Trade:
         """
         Executes a sell order.
@@ -171,6 +181,8 @@ class TradeExecutor:
             quantity: Number of shares to sell
             price: Price per share
             recommendation_id: Optional recommendation ID
+            stock_name: Optional human-readable stock name
+            rationale: Optional reason for the trade
             
         Returns:
             Trade object representing the executed trade
@@ -217,13 +229,17 @@ class TradeExecutor:
             quantity=quantity,
             price=price,
             timestamp=datetime.now(),
-            recommendation_id=recommendation_id
+            recommendation_id=recommendation_id,
+            stock_name=stock_name,
+            rationale=rationale
         )
         
         # Record in history
         self.trade_history.add_trade(trade)
         
-        self.logger.info(f"Executed SELL: {quantity} {symbol_upper} @ ${price}")
+        # Log with stock name if available
+        name_str = f" ({stock_name})" if stock_name else ""
+        self.logger.info(f"Executed SELL: {quantity} {symbol_upper}{name_str} @ ${price}")
         
         return trade
     
@@ -329,7 +345,9 @@ class TradeExecutor:
                     recommendation.symbol,
                     quantity,
                     price,
-                    recommendation_id=getattr(recommendation, 'recommendation_id', None)
+                    recommendation_id=getattr(recommendation, 'recommendation_id', None),
+                    stock_name=getattr(recommendation, 'name', None),
+                    rationale=getattr(recommendation, 'rationale', None)
                 )
             except ValueError as e:
                 self.logger.warning(f"Failed to execute BUY for {recommendation.symbol}: {e}")
@@ -352,7 +370,9 @@ class TradeExecutor:
                     recommendation.symbol,
                     quantity,
                     price,
-                    recommendation_id=getattr(recommendation, 'recommendation_id', None)
+                    recommendation_id=getattr(recommendation, 'recommendation_id', None),
+                    stock_name=getattr(recommendation, 'name', None),
+                    rationale=getattr(recommendation, 'rationale', None)
                 )
             except ValueError as e:
                 self.logger.warning(f"Failed to execute SELL for {recommendation.symbol}: {e}")
