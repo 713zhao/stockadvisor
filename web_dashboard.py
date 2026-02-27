@@ -273,6 +273,119 @@ def get_stats():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/monitoring-status')
+def get_monitoring_status():
+    """Get intraday monitoring status for all regions."""
+    try:
+        from stock_market_analysis.models.market_region import MarketRegion
+        from datetime import datetime
+        import pytz
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        # Try to get system instance from Flask app config first
+        system = app.config.get('SYSTEM_INSTANCE')
+        
+        # Fallback to shared_state if not in config
+        if not system:
+            from stock_market_analysis.shared_state import get_system_instance
+            system = get_system_instance()
+        
+        if not system:
+            return jsonify({
+                'enabled': False,
+                'message': 'System is still initializing. Please wait a moment and refresh.'
+            })
+        
+        if not system.intraday_monitor:
+            return jsonify({
+                'enabled': False,
+                'message': 'Intraday monitoring is not enabled in configuration'
+            })
+        
+        intraday_monitor = system.intraday_monitor
+        market_hours_detector = intraday_monitor.market_hours_detector
+        
+        # Singapore timezone for display
+        sgp_tz = pytz.timezone('Asia/Singapore')
+        
+        # Get status for each region
+        regions_status = []
+        for region in [MarketRegion.CHINA, MarketRegion.HONG_KONG, MarketRegion.USA]:
+            try:
+                # Get monitoring status
+                status = intraday_monitor.get_monitoring_status(region)
+                
+                # Check if market is currently open
+                is_market_open = market_hours_detector.is_market_open(region)
+                
+                # Get market hours in local timezone
+                open_time, close_time = market_hours_detector.get_market_hours(region)
+                local_tz_name = market_hours_detector.MARKET_HOURS[region]['timezone']
+                
+                # For USA market, convert times to Singapore timezone for display
+                if region == MarketRegion.USA:
+                    # Get the timezone object
+                    local_tz = pytz.timezone(local_tz_name)
+                    
+                    # Create datetime objects with today's date in local timezone
+                    today = datetime.now(local_tz).date()
+                    open_dt = local_tz.localize(datetime.combine(today, open_time))
+                    close_dt = local_tz.localize(datetime.combine(today, close_time))
+                    
+                    # Convert to Singapore time
+                    open_dt_sgp = open_dt.astimezone(sgp_tz)
+                    close_dt_sgp = close_dt.astimezone(sgp_tz)
+                    
+                    # Format for display
+                    display_open = open_dt_sgp.strftime('%H:%M')
+                    display_close = close_dt_sgp.strftime('%H:%M')
+                    display_tz = 'Asia/Singapore (SGT)'
+                else:
+                    # For other regions, use local time
+                    display_open = open_time.strftime('%H:%M')
+                    display_close = close_time.strftime('%H:%M')
+                    display_tz = local_tz_name
+                
+                regions_status.append({
+                    'region': region.value,
+                    'is_market_open': is_market_open,
+                    'market_hours': {
+                        'open': display_open,
+                        'close': display_close,
+                        'timezone': display_tz
+                    },
+                    'monitoring': {
+                        'is_active': status.is_active,
+                        'is_paused': status.is_paused,
+                        'pause_reason': status.pause_reason,
+                        'pause_until': status.pause_until.isoformat() if status.pause_until else None,
+                        'last_cycle_time': status.last_cycle_time.isoformat() if status.last_cycle_time else None,
+                        'next_cycle_time': status.next_cycle_time.isoformat() if status.next_cycle_time else None,
+                        'consecutive_failures': status.consecutive_failures,
+                        'total_cycles_today': status.total_cycles_today
+                    }
+                })
+            except Exception as e:
+                logger.error(f"Error getting status for {region.value}: {e}", exc_info=True)
+                regions_status.append({
+                    'region': region.value,
+                    'error': str(e)
+                })
+        
+        return jsonify({
+            'enabled': True,
+            'regions': regions_status
+        })
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in get_monitoring_status: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     print("=" * 60)
     print("Stock Market Analysis & Trading Dashboard")

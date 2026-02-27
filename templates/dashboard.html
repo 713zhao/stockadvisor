@@ -252,6 +252,98 @@
             color: #667eea;
             margin-bottom: 4px;
         }
+        
+        /* System status styles */
+        .market-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .market-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .market-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .market-status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .market-status.open {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .market-status.closed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .market-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .info-item {
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .info-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .monitoring-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .monitoring-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .monitoring-badge.paused {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .monitoring-badge.inactive {
+            background: #e2e3e5;
+            color: #383d41;
+        }
     </style>
 </head>
 <body>
@@ -288,6 +380,7 @@
                 <button class="tab" onclick="showTab('trades')">Trade History</button>
                 <button class="tab" onclick="showTab('performance')">Performance</button>
                 <button class="tab" onclick="showTab('reports')">Reports</button>
+                <button class="tab" onclick="showTab('system')">System Status</button>
             </div>
             
             <!-- Positions Tab -->
@@ -319,6 +412,14 @@
                 <h2 class="section-title">Analysis Reports</h2>
                 <div id="reports-content">
                     <div class="loading">Loading reports...</div>
+                </div>
+            </div>
+            
+            <!-- System Status Tab -->
+            <div id="system-tab" class="tab-content">
+                <h2 class="section-title">Intraday Monitoring Status</h2>
+                <div id="system-content">
+                    <div class="loading">Loading system status...</div>
                 </div>
             </div>
         </div>
@@ -540,12 +641,123 @@
             }
         }
         
+        // Load system status
+        async function loadSystemStatus() {
+            try {
+                const response = await fetch('/api/monitoring-status');
+                const data = await response.json();
+                const content = document.getElementById('system-content');
+                
+                if (!data.enabled) {
+                    const message = data.message || 'Intraday monitoring is not enabled';
+                    content.innerHTML = `<p>${message}</p>`;
+                    return;
+                }
+                
+                if (data.error) {
+                    content.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                let html = '';
+                
+                data.regions.forEach(region => {
+                    if (region.error) {
+                        html += `
+                            <div class="market-card">
+                                <div class="market-header">
+                                    <div class="market-name">${region.region}</div>
+                                    <div class="error">Error: ${region.error}</div>
+                                </div>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    const marketStatusClass = region.is_market_open ? 'open' : 'closed';
+                    const marketStatusText = region.is_market_open ? '🟢 Market Open' : '🔴 Market Closed';
+                    
+                    let monitoringBadge = '';
+                    if (region.monitoring.is_paused) {
+                        monitoringBadge = '<span class="monitoring-badge paused">⏸ Paused</span>';
+                    } else if (region.monitoring.is_active) {
+                        monitoringBadge = '<span class="monitoring-badge active">✓ Active</span>';
+                    } else {
+                        monitoringBadge = '<span class="monitoring-badge inactive">○ Inactive</span>';
+                    }
+                    
+                    const lastCycle = region.monitoring.last_cycle_time 
+                        ? new Date(region.monitoring.last_cycle_time).toLocaleString()
+                        : 'Never';
+                    
+                    const nextCycle = region.monitoring.next_cycle_time 
+                        ? new Date(region.monitoring.next_cycle_time).toLocaleString()
+                        : 'Not scheduled';
+                    
+                    html += `
+                        <div class="market-card">
+                            <div class="market-header">
+                                <div class="market-name">${region.region}</div>
+                                <div class="market-status ${marketStatusClass}">${marketStatusText}</div>
+                            </div>
+                            
+                            <div class="market-info-grid">
+                                <div class="info-item">
+                                    <div class="info-label">Market Hours</div>
+                                    <div class="info-value">${region.market_hours.open} - ${region.market_hours.close}</div>
+                                    <div class="info-label" style="margin-top: 0.25rem;">${region.market_hours.timezone}</div>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <div class="info-label">Monitoring Status</div>
+                                    <div class="info-value">${monitoringBadge}</div>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <div class="info-label">Last Check</div>
+                                    <div class="info-value">${lastCycle}</div>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <div class="info-label">Next Check</div>
+                                    <div class="info-value">${nextCycle}</div>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <div class="info-label">Cycles Today</div>
+                                    <div class="info-value">${region.monitoring.total_cycles_today}</div>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <div class="info-label">Consecutive Failures</div>
+                                    <div class="info-value">${region.monitoring.consecutive_failures}</div>
+                                </div>
+                            </div>
+                            
+                            ${region.monitoring.is_paused && region.monitoring.pause_reason ? `
+                                <div style="margin-top: 1rem; padding: 0.75rem; background: #fff3cd; border-radius: 8px; color: #856404;">
+                                    <strong>Paused:</strong> ${region.monitoring.pause_reason}
+                                    ${region.monitoring.pause_until ? `<br><strong>Until:</strong> ${new Date(region.monitoring.pause_until).toLocaleString()}` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                content.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading system status:', error);
+                document.getElementById('system-content').innerHTML = '<div class="error">Error loading system status. The system may still be initializing.</div>';
+            }
+        }
+        
         // Load all data
         function loadAllData() {
             loadPortfolio();
             loadTrades();
             loadPerformance();
             loadReports();
+            loadSystemStatus();
         }
         
         // Initial load

@@ -32,6 +32,7 @@ def run_analysis_system():
     """Run the main analysis system with intraday monitoring."""
     try:
         from stock_market_analysis.main import StockMarketAnalysisSystem, setup_logging
+        from stock_market_analysis.shared_state import set_system_instance
         
         logger.info("Starting Stock Market Analysis System...")
         
@@ -43,6 +44,9 @@ def run_analysis_system():
         if not system.initialize():
             logger.error("Failed to initialize analysis system")
             return
+        
+        # Store system instance for dashboard access
+        set_system_instance(system)
         
         # Start system (includes intraday monitoring)
         system.start()
@@ -63,9 +67,36 @@ def run_analysis_system():
 def run_web_dashboard():
     """Run the web dashboard server."""
     try:
-        import web_dashboard
+        # Import here to avoid circular imports
+        from stock_market_analysis.shared_state import get_system_instance
         
         logger.info("Starting Web Dashboard on http://localhost:5000")
+        
+        # Wait for the system to initialize
+        import time
+        max_wait = 10  # Wait up to 10 seconds
+        wait_interval = 0.5
+        elapsed = 0
+        
+        system = None
+        while elapsed < max_wait:
+            system = get_system_instance()
+            if system and system.intraday_monitor:
+                logger.info(f"System instance found with intraday_monitor after {elapsed}s")
+                break
+            time.sleep(wait_interval)
+            elapsed += wait_interval
+        
+        if not system:
+            logger.warning("System instance not available after waiting")
+        
+        # Import web_dashboard AFTER we have the system instance
+        import web_dashboard
+        
+        # Store system instance in Flask app config BEFORE starting the server
+        if system:
+            web_dashboard.app.config['SYSTEM_INSTANCE'] = system
+            logger.info(f"Stored system instance in Flask app config")
         
         # Run Flask app (this blocks)
         web_dashboard.app.run(
