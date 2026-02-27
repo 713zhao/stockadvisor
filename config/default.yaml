@@ -126,6 +126,22 @@ notifications:
 # Default: Run after market close (6 PM EST)
 schedule: "0 18 * * 1-5"
 
+# Trading simulation configuration
+trading:
+  # Initial cash balance for new portfolios
+  initial_cash_balance: 100000.00
+  
+  # Minimum confidence score (0.0-1.0) required to execute a trade
+  confidence_threshold: 0.70
+  
+  # Position sizing strategy: "fixed_amount" or "percentage"
+  position_sizing_strategy: "percentage"
+  
+  # Position size value:
+  #   - For "fixed_amount": dollar amount per trade (e.g., 5000.00)
+  #   - For "percentage": percentage of portfolio (e.g., 0.10 for 10%)
+  position_size_value: 0.10
+
 # Logging configuration
 logging:
   level: INFO

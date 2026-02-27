@@ -1,0 +1,23 @@
+{
+  "portfolio_id": "104489d7-1703-4629-8230-b1a68f7323b9",
+  "cash_balance": "55750.00",
+  "initial_cash_balance": "100000.00",
+  "creation_timestamp": "2026-02-27T14:02:25.731756",
+  "positions": {
+    "AAPL": {
+      "symbol": "AAPL",
+      "quantity": 50,
+      "average_cost_basis": "150.00"
+    },
+    "NVDA": {
+      "symbol": "NVDA",
+      "quantity": 50,
+      "average_cost_basis": "500.00"
+    },
+    "MSFT": {
+      "symbol": "MSFT",
+      "quantity": 30,
+      "average_cost_basis": "400.00"
+    }
+  }
+}

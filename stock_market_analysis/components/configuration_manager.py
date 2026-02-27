@@ -420,3 +420,110 @@ class ConfigurationManager:
             recipients=email_dict['recipients'],
             sender_address=email_dict.get('sender_address', smtp_dict['username'])
         )
+
+    def get_trading_config(self) -> dict:
+        """
+        Returns trading configuration.
+        
+        Returns:
+            Dictionary with trading configuration
+        """
+        try:
+            if not self.storage_path.exists():
+                return self._get_default_trading_config()
+            
+            file_extension = self.storage_path.suffix.lower()
+            
+            with open(self.storage_path, 'r') as f:
+                if file_extension in ['.yaml', '.yml']:
+                    config_dict = yaml.safe_load(f)
+                else:
+                    config_dict = json.load(f)
+            
+            if not config_dict or 'trading' not in config_dict:
+                return self._get_default_trading_config()
+            
+            trading_config = config_dict['trading']
+            
+            # Validate configuration
+            self._validate_trading_config(trading_config)
+            
+            return trading_config
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to load trading config: {e}, using defaults")
+            return self._get_default_trading_config()
+    
+    def get_initial_cash_balance(self) -> float:
+        """Returns initial cash balance for new portfolios."""
+        config = self.get_trading_config()
+        return config.get('initial_cash_balance', 100000.00)
+    
+    def get_confidence_threshold(self) -> float:
+        """Returns confidence threshold for trade execution."""
+        config = self.get_trading_config()
+        return config.get('confidence_threshold', 0.70)
+    
+    def get_position_sizing_config(self) -> dict:
+        """
+        Returns position sizing configuration.
+        
+        Returns:
+            Dictionary with 'strategy' and 'value' keys
+        """
+        config = self.get_trading_config()
+        return {
+            'strategy': config.get('position_sizing_strategy', 'percentage'),
+            'value': config.get('position_size_value', 0.10)
+        }
+    
+    def _get_default_trading_config(self) -> dict:
+        """Returns default trading configuration."""
+        return {
+            'initial_cash_balance': 100000.00,
+            'confidence_threshold': 0.70,
+            'position_sizing_strategy': 'percentage',
+            'position_size_value': 0.10
+        }
+    
+    def _validate_trading_config(self, config: dict) -> None:
+        """
+        Validates trading configuration.
+        
+        Args:
+            config: Trading configuration dictionary
+            
+        Raises:
+            ValueError: If configuration is invalid
+        """
+        # Validate confidence threshold
+        if 'confidence_threshold' in config:
+            threshold = config['confidence_threshold']
+            if not isinstance(threshold, (int, float)) or threshold < 0.0 or threshold > 1.0:
+                raise ValueError(
+                    f"Invalid confidence_threshold: must be between 0.0 and 1.0, got {threshold}"
+                )
+        
+        # Validate position sizing strategy
+        if 'position_sizing_strategy' in config:
+            strategy = config['position_sizing_strategy']
+            if strategy not in ['fixed_amount', 'percentage']:
+                raise ValueError(
+                    f"Invalid position_sizing_strategy: must be 'fixed_amount' or 'percentage', got {strategy}"
+                )
+        
+        # Validate position size value
+        if 'position_size_value' in config:
+            value = config['position_size_value']
+            if not isinstance(value, (int, float)) or value <= 0:
+                raise ValueError(
+                    f"Invalid position_size_value: must be positive, got {value}"
+                )
+            
+            # Additional validation for percentage strategy
+            strategy = config.get('position_sizing_strategy', 'percentage')
+            if strategy == 'percentage' and (value < 0.01 or value > 1.0):
+                raise ValueError(
+                    f"Invalid position_size_value for percentage strategy: "
+                    f"must be between 0.01 and 1.0, got {value}"
+                )

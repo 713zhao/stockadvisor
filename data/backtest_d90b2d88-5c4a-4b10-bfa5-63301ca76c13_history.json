@@ -1,0 +1,62 @@
+[
+  {
+    "trade_id": "2bce802e-f48b-4dd5-a823-9a69f26632c5",
+    "portfolio_id": "75401ef5-1503-4ebd-ba83-3760e2e10cd8",
+    "symbol": "AAPL",
+    "action": "BUY",
+    "quantity": 66,
+    "price": "150.00",
+    "timestamp": "2026-02-27T14:36:38.770410",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "3e2037e6-1167-4e06-80b3-3de9ed6f8ad9",
+    "portfolio_id": "75401ef5-1503-4ebd-ba83-3760e2e10cd8",
+    "symbol": "NVDA",
+    "action": "BUY",
+    "quantity": 24,
+    "price": "500.00",
+    "timestamp": "2026-02-27T14:36:38.771684",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "afee2c9d-a4f6-4dcc-9789-8aa1e6599921",
+    "portfolio_id": "75401ef5-1503-4ebd-ba83-3760e2e10cd8",
+    "symbol": "MSFT",
+    "action": "BUY",
+    "quantity": 29,
+    "price": "380.00",
+    "timestamp": "2026-02-27T14:36:38.773295",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "a0325be4-398e-46a5-a575-f53e5b78de88",
+    "portfolio_id": "75401ef5-1503-4ebd-ba83-3760e2e10cd8",
+    "symbol": "AAPL",
+    "action": "SELL",
+    "quantity": 66,
+    "price": "160.00",
+    "timestamp": "2026-02-27T14:36:38.774463",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "5bb153a5-22da-4a25-95bc-bd8b93c4e718",
+    "portfolio_id": "75401ef5-1503-4ebd-ba83-3760e2e10cd8",
+    "symbol": "GOOGL",
+    "action": "BUY",
+    "quantity": 60,
+    "price": "140.00",
+    "timestamp": "2026-02-27T14:36:38.775392",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "c04f83df-3d89-4075-a794-1b0b4f1121ad",
+    "portfolio_id": "75401ef5-1503-4ebd-ba83-3760e2e10cd8",
+    "symbol": "NVDA",
+    "action": "SELL",
+    "quantity": 24,
+    "price": "550.00",
+    "timestamp": "2026-02-27T14:36:38.776666",
+    "recommendation_id": null
+  }
+]

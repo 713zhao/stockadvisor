@@ -27,6 +27,8 @@ from stock_market_analysis.components import (
     EventStatus
 )
 from stock_market_analysis.components.yahoo_finance_api import YahooFinanceAPI
+from stock_market_analysis.trading import TradingSimulator, TradingIntegration
+from decimal import Decimal
 
 
 class StockMarketAnalysisSystem:
@@ -55,6 +57,9 @@ class StockMarketAnalysisSystem:
         self.report_generator: Optional[ReportGenerator] = None
         self.notification_service: Optional[NotificationService] = None
         self.scheduler: Optional[Scheduler] = None
+        self.trading_simulator: Optional[TradingSimulator] = None
+        self.trading_integration: Optional[TradingIntegration] = None
+        self.default_portfolio_id: Optional[str] = None
         
         # System state
         self._running = False
@@ -84,6 +89,22 @@ class StockMarketAnalysisSystem:
                 market_monitor=self.market_monitor
             )
             self.logger.info("Analysis engine initialized")
+            
+            # Initialize trading simulator
+            self.trading_simulator = TradingSimulator(config_manager=self.config_manager)
+            self.logger.info("Trading simulator initialized")
+            
+            # Create default portfolio
+            initial_cash = Decimal(str(self.config_manager.get_initial_cash_balance()))
+            self.default_portfolio_id = self.trading_simulator.create_portfolio(initial_cash)
+            self.logger.info(f"Created default portfolio {self.default_portfolio_id} with ${initial_cash:,.2f}")
+            
+            # Initialize trading integration
+            self.trading_integration = TradingIntegration(
+                trading_simulator=self.trading_simulator,
+                analysis_engine=self.analysis_engine
+            )
+            self.logger.info("Trading integration initialized")
             
             # Initialize report generator
             self.report_generator = ReportGenerator()
@@ -160,6 +181,28 @@ class StockMarketAnalysisSystem:
             self.logger.info("Analyzing market data and generating recommendations...")
             recommendations = self.analysis_engine.analyze_and_recommend(market_data)
             self.logger.info(f"Generated {len(recommendations)} recommendations")
+            
+            # Step 2.5: Process recommendations through trading simulator
+            if self.trading_integration and self.default_portfolio_id:
+                self.logger.info("Processing recommendations through trading simulator...")
+                executed_trades = self.trading_integration.process_analysis_results(
+                    self.default_portfolio_id,
+                    recommendations
+                )
+                self.logger.info(f"Executed {len(executed_trades)} trades")
+                
+                # Get performance report
+                performance_report = self.trading_simulator.get_performance_report(
+                    self.default_portfolio_id
+                )
+                portfolio = self.trading_simulator.get_portfolio(self.default_portfolio_id)
+                
+                self.logger.info(
+                    f"Portfolio value: ${performance_report.portfolio_value:,.2f}, "
+                    f"Cash: ${portfolio.cash_balance:,.2f}, "
+                    f"Total P&L: ${performance_report.total_pnl:,.2f} "
+                    f"({performance_report.total_return_pct:.2f}%)"
+                )
             
             # Step 3: Generate daily report
             self.logger.info("Generating daily report...")

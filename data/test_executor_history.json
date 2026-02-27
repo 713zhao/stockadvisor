@@ -1,0 +1,52 @@
+[
+  {
+    "trade_id": "b5df6318-0284-49e5-8a49-769604989598",
+    "portfolio_id": "test-portfolio",
+    "symbol": "AAPL",
+    "action": "BUY",
+    "quantity": 100,
+    "price": "150.00",
+    "timestamp": "2026-02-27T13:54:50.300270",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "f66db2c2-5555-4d6e-91e6-6febc29a8f43",
+    "portfolio_id": "test-portfolio",
+    "symbol": "AAPL",
+    "action": "BUY",
+    "quantity": 50,
+    "price": "155.00",
+    "timestamp": "2026-02-27T13:54:50.301778",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "1837fad2-4ec5-4b1e-87ba-7f567e02adbe",
+    "portfolio_id": "test-portfolio",
+    "symbol": "NVDA",
+    "action": "BUY",
+    "quantity": 20,
+    "price": "500.00",
+    "timestamp": "2026-02-27T13:54:50.333856",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "7d497fa3-c683-47a8-ac7e-41f3d42aa4e2",
+    "portfolio_id": "test-portfolio",
+    "symbol": "AAPL",
+    "action": "SELL",
+    "quantity": 50,
+    "price": "160.00",
+    "timestamp": "2026-02-27T13:54:50.335365",
+    "recommendation_id": null
+  },
+  {
+    "trade_id": "22154af8-281d-45f0-8e94-edeec21e3b04",
+    "portfolio_id": "test-portfolio",
+    "symbol": "NVDA",
+    "action": "SELL",
+    "quantity": 20,
+    "price": "550.00",
+    "timestamp": "2026-02-27T13:54:50.336666",
+    "recommendation_id": null
+  }
+]

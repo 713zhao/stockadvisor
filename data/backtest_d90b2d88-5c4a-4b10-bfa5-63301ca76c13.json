@@ -1,0 +1,90 @@
+{
+  "backtest_id": "d90b2d88-5c4a-4b10-bfa5-63301ca76c13",
+  "start_date": "2026-01-28T14:36:38.759482",
+  "end_date": "2026-02-22T14:36:38.759482",
+  "initial_cash": "100000.00",
+  "final_portfolio_value": "101860.00",
+  "total_recommendations_processed": 7,
+  "performance_report": {
+    "portfolio_summary": {
+      "portfolio_value": "101860.00",
+      "cash_balance": "82440.00",
+      "total_positions": 2
+    },
+    "pnl_summary": {
+      "realized_pnl": "1860.00",
+      "unrealized_pnl": "0.00",
+      "total_pnl": "1860.00",
+      "total_return_pct": "1.8600"
+    },
+    "trade_statistics": {
+      "total_trades": 6,
+      "win_rate": "100",
+      "avg_profit_per_win": "930.00",
+      "avg_loss_per_loss": "0",
+      "max_drawdown": "0"
+    },
+    "open_positions": [
+      {
+        "symbol": "MSFT",
+        "quantity": 29,
+        "average_cost": 380.0,
+        "current_price": 380.0,
+        "current_value": 11020.0,
+        "unrealized_pnl": 0.0
+      },
+      {
+        "symbol": "GOOGL",
+        "quantity": 60,
+        "average_cost": 140.0,
+        "current_price": 140.0,
+        "current_value": 8400.0,
+        "unrealized_pnl": 0.0
+      }
+    ],
+    "recent_trades": [
+      {
+        "timestamp": "2026-02-27T14:36:38.776666",
+        "action": "SELL",
+        "symbol": "NVDA",
+        "quantity": 24,
+        "price": 550.0
+      },
+      {
+        "timestamp": "2026-02-27T14:36:38.775392",
+        "action": "BUY",
+        "symbol": "GOOGL",
+        "quantity": 60,
+        "price": 140.0
+      },
+      {
+        "timestamp": "2026-02-27T14:36:38.774463",
+        "action": "SELL",
+        "symbol": "AAPL",
+        "quantity": 66,
+        "price": 160.0
+      },
+      {
+        "timestamp": "2026-02-27T14:36:38.773295",
+        "action": "BUY",
+        "symbol": "MSFT",
+        "quantity": 29,
+        "price": 380.0
+      },
+      {
+        "timestamp": "2026-02-27T14:36:38.771684",
+        "action": "BUY",
+        "symbol": "NVDA",
+        "quantity": 24,
+        "price": 500.0
+      },
+      {
+        "timestamp": "2026-02-27T14:36:38.770410",
+        "action": "BUY",
+        "symbol": "AAPL",
+        "quantity": 66,
+        "price": 150.0
+      }
+    ]
+  }
+}
