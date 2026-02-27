@@ -1,5 +1,98 @@
 # Default configuration for Stock Market Analysis system
 
+# Data source configuration
+data_source:
+  # Set to true to use simulated data for testing, false to use real Yahoo Finance data
+  use_mock_data: false
+
+# Stock scanning configuration
+stock_scanning:
+  # Maximum number of stocks to scan per region (0 = scan all stocks in the list)
+  # This setting applies GLOBALLY to ALL regions: China, Hong Kong, and USA
+  # Examples:
+  #   0 = scan all stocks (China: 9, Hong Kong: 8, USA: 15 = 32 total)
+  #   5 = scan 5 stocks per region (5 + 5 + 5 = 15 total)
+  #   10 = scan 10 stocks per region (9 + 8 + 10 = 27 total, limited by available stocks)
+  max_stocks_per_region: 0
+
+# Report formatting configuration
+report_formatting:
+  # Number of top recommendations to show full rationale for (0 = show full rationale for all)
+  # Top recommendations are sorted by confidence score
+  # Examples:
+  #   0 = show full rationale for all recommendations
+  #   3 = show full rationale for top 3 BUY and top 3 SELL, truncate the rest
+  #   5 = show full rationale for top 5 BUY and top 5 SELL, truncate the rest
+  full_rationale_count: 3
+  
+  # Maximum length for truncated rationale (characters)
+  truncated_rationale_length: 80
+  
+  # Maximum number of recommendations to send to Telegram (0 = send all)
+  # This limits the total number of stocks in the Telegram message
+  # Full report is always saved to disk regardless of this setting
+  # Examples:
+  #   0 = send all recommendations to Telegram
+  #   10 = send only top 10 recommendations (5 BUY + 5 SELL)
+  #   20 = send only top 20 recommendations (10 BUY + 10 SELL)
+  max_telegram_recommendations: 10
+  
+  # Focus industries for stock selection
+  focus_industries:
+    - AI              # Artificial Intelligence
+    - semiconductors  # Chip manufacturing
+    - power           # Energy and utilities
+    - resources       # Natural resources
+
+# Stock symbols to monitor per region
+# Focus areas: AI and Resources (power, silicon, semiconductors)
+stock_symbols:
+  usa:
+    # AI Leaders
+    - NVDA      # NVIDIA - AI chips
+    - AMD       # AMD - AI/GPU chips
+    - MSFT      # Microsoft - AI software
+    - GOOGL     # Alphabet - AI research
+    - META      # Meta - AI applications
+    - TSLA      # Tesla - AI/autonomous driving
+    - PLTR      # Palantir - AI analytics
+    # Power & Resources
+    - NEE       # NextEra Energy - renewable power
+    - DUK       # Duke Energy - power utility
+    - SO        # Southern Company - power utility
+    # Semiconductors
+    - TSM       # TSMC - chip manufacturing
+    - INTC      # Intel - semiconductors
+    - QCOM      # Qualcomm - mobile chips
+    - AVGO      # Broadcom - semiconductors
+    - MU        # Micron - memory chips
+  
+  hong_kong:
+    # AI & Tech
+    - 0700.HK   # Tencent - AI/cloud
+    - 9988.HK   # Alibaba - AI/cloud
+    - 1810.HK   # Xiaomi - AI devices
+    - 2382.HK   # Sunny Optical - AI cameras
+    # Resources & Power
+    - 0002.HK   # CLP Holdings - power utility
+    - 0003.HK   # Hong Kong & China Gas - energy
+    - 0386.HK   # China Petroleum - oil/gas
+    - 0883.HK   # CNOOC - offshore oil
+  
+  china:
+    # AI & Tech (Shanghai)
+    - 688981.SS # iFlytek - AI voice
+    - 688036.SS # Cambricon - AI chips
+    - 600588.SS # Yonyou Network - AI software
+    # Resources & Power (Shanghai)
+    - 600900.SS # China Yangtze Power - hydropower
+    - 601088.SS # China Shenhua Energy - coal/power
+    - 600028.SS # China Petroleum - oil/gas
+    # Semiconductors (Shenzhen)
+    - 002371.SZ # NAURA - semiconductor equipment
+    - 300782.SZ # Maxscend - RF chips
+    - 002049.SZ # Unigroup Guoxin - semiconductors
+
 # Market regions to monitor (defaults to China, Hong Kong, USA if not specified)
 market_regions:
   - china

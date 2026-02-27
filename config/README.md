@@ -17,6 +17,92 @@ Your production configuration with real credentials. This file should be created
 
 ## Configuration Structure
 
+### Data Source
+
+Configure whether to use real Yahoo Finance data or simulated data:
+
+```yaml
+data_source:
+  # Set to true for testing, false for real Yahoo Finance data
+  use_mock_data: false
+```
+
+### Stock Scanning
+
+Configure how many stocks to scan per region:
+
+```yaml
+stock_scanning:
+  # Maximum number of stocks to scan per region (0 = scan all)
+  # This setting applies GLOBALLY to ALL regions
+  # Examples:
+  #   0 = scan all stocks (default)
+  #   5 = scan 5 stocks per region
+  #   10 = scan 10 stocks per region
+  max_stocks_per_region: 0
+```
+
+See [STOCK_CONFIGURATION_GUIDE.md](STOCK_CONFIGURATION_GUIDE.md) for details on stock selection.
+
+### Report Formatting
+
+Configure how reports are formatted for delivery:
+
+```yaml
+report_formatting:
+  # Number of top recommendations to show full rationale (0 = all)
+  # Top recommendations are sorted by confidence score
+  full_rationale_count: 3
+  
+  # Maximum length for truncated rationale (characters)
+  truncated_rationale_length: 80
+  
+  # Maximum recommendations to send to Telegram (0 = all)
+  # Full report is ALWAYS saved to disk regardless of this setting
+  # Examples:
+  #   0 = send all recommendations
+  #   10 = send top 10 (5 BUY + 5 SELL)
+  #   20 = send top 20 (10 BUY + 10 SELL)
+  max_telegram_recommendations: 10
+  
+  # Focus industries for stock selection
+  focus_industries:
+    - AI              # Artificial Intelligence
+    - semiconductors  # Chip manufacturing
+    - power           # Energy and utilities
+    - resources       # Natural resources
+```
+
+See [REPORT_FORMATTING_GUIDE.md](../REPORT_FORMATTING_GUIDE.md) for detailed formatting options.
+
+### Stock Symbols
+
+Configure which stocks to monitor per region:
+
+```yaml
+stock_symbols:
+  usa:
+    - NVDA      # NVIDIA - AI chips
+    - AMD       # AMD - AI/GPU chips
+    - MSFT      # Microsoft - AI software
+    # ... more stocks
+  
+  hong_kong:
+    - 0700.HK   # Tencent - AI/cloud
+    - 9988.HK   # Alibaba - AI/cloud
+    # ... more stocks
+  
+  china:
+    - 688981.SS # iFlytek - AI voice
+    - 688036.SS # Cambricon - AI chips
+    # ... more stocks
+```
+
+**Default Configuration:** The system includes 32 stocks focused on AI and Resources:
+- USA: 15 stocks (NVIDIA, AMD, Microsoft, Google, Meta, Tesla, Palantir, TSMC, Intel, Qualcomm, Broadcom, Micron, NextEra Energy, Duke Energy, Southern Company)
+- Hong Kong: 8 stocks (Tencent, Alibaba, Xiaomi, Sunny Optical, CLP Holdings, HK Gas, China Petroleum, CNOOC)
+- China: 9 stocks (iFlytek, Cambricon, Yonyou, Yangtze Power, Shenhua Energy, China Petroleum, NAURA, Maxscend, Unigroup Guoxin)
+
 ### Market Regions
 
 Configure which stock markets to monitor:

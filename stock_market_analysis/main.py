@@ -26,6 +26,7 @@ from stock_market_analysis.components import (
     EventType,
     EventStatus
 )
+from stock_market_analysis.components.yahoo_finance_api import YahooFinanceAPI
 
 
 class StockMarketAnalysisSystem:
@@ -73,10 +74,10 @@ class StockMarketAnalysisSystem:
             self.config_manager = ConfigurationManager(storage_path=self.config_path)
             self.logger.info(f"Configuration loaded from {self.config_path}")
             
-            # Initialize market monitor with mock API (in production, use real API)
-            market_api = MockMarketDataAPI()
+            # Initialize market monitor with Yahoo Finance API
+            market_api = YahooFinanceAPI(config_manager=self.config_manager)
             self.market_monitor = MarketMonitor(api=market_api)
-            self.logger.info("Market monitor initialized")
+            self.logger.info("Market monitor initialized with Yahoo Finance API")
             
             # Initialize analysis engine
             self.analysis_engine = AnalysisEngine(

@@ -40,6 +40,33 @@ class NotificationService:
         """
         self.logger = logging.getLogger(__name__)
         self.config_manager = config_manager
+        
+        # Load report formatting configuration
+        self.full_rationale_count = 3  # Default
+        self.truncated_length = 80  # Default
+        self.max_telegram_recommendations = 0  # Default (send all)
+        self._load_formatting_config()
+    
+    def _load_formatting_config(self):
+        """Load report formatting configuration from config file."""
+        try:
+            if self.config_manager.storage_path.exists():
+                import yaml
+                with open(self.config_manager.storage_path, 'r') as f:
+                    config_data = yaml.safe_load(f)
+                
+                formatting = config_data.get('report_formatting', {})
+                self.full_rationale_count = formatting.get('full_rationale_count', 3)
+                self.truncated_length = formatting.get('truncated_rationale_length', 80)
+                self.max_telegram_recommendations = formatting.get('max_telegram_recommendations', 0)
+                
+                self.logger.info(
+                    f"Report formatting: full_rationale_count={self.full_rationale_count}, "
+                    f"truncated_length={self.truncated_length}, "
+                    f"max_telegram_recommendations={self.max_telegram_recommendations}"
+                )
+        except Exception as e:
+            self.logger.warning(f"Failed to load formatting config, using defaults: {e}")
     
     def deliver_report(self, report: DailyReport) -> DeliveryResult:
         """
@@ -155,8 +182,12 @@ class NotificationService:
             if not telegram_config:
                 return False, "No Telegram configuration found"
             
-            # Format report for Telegram
-            message = report.format_for_telegram()
+            # Format report for Telegram with truncation and limit settings
+            message = report.format_for_telegram(
+                full_rationale_count=self.full_rationale_count,
+                truncated_length=self.truncated_length,
+                max_recommendations=self.max_telegram_recommendations
+            )
             
             # Split message if it exceeds Telegram's limit (4096 characters)
             messages = self._split_telegram_message(message)

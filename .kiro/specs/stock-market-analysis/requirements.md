@@ -14,6 +14,9 @@ The Stock Market Analysis and Recommendation System is a feature that monitors s
 - **Stock_Recommendation**: A structured output containing buy/sell/hold suggestion with supporting analysis
 - **Market_Region**: A geographic stock market area (China, Hong Kong, USA, or others)
 - **Daily_Report**: A comprehensive document containing all recommendations and market analysis for a trading day
+- **YahooFinanceAPI**: The component that fetches real market data from Yahoo Finance using the yfinance library
+- **MockMarketDataAPI**: The component that generates simulated market data for testing purposes
+- **MarketDataAPI**: The interface that both YahooFinanceAPI and MockMarketDataAPI implement
 
 ## Requirements
 
@@ -101,7 +104,24 @@ The Stock Market Analysis and Recommendation System is a feature that monitors s
 4. WHEN analysis execution fails, THE Analysis_Engine SHALL retry up to 3 times with 5-minute intervals
 5. WHEN all retry attempts fail, THE Analysis_Engine SHALL log the failure and notify administrators
 
-### Requirement 8: Error Handling and Logging
+### Requirement 8: Real Market Data Integration
+
+**User Story:** As an investor, I want the system to fetch real market data from Yahoo Finance, so that I can receive recommendations based on actual market conditions.
+
+#### Acceptance Criteria
+
+1. THE Market_Monitor SHALL support fetching real end-of-day market data using the yfinance library
+2. THE Market_Monitor SHALL support stock symbols from multiple regions (US format: AAPL, Hong Kong format: 0700.HK, China format: 601398.SS)
+3. WHEN yfinance API is unavailable or rate-limited, THE Market_Monitor SHALL log the error and retry with exponential backoff
+4. THE Market_Monitor SHALL validate fetched market data for completeness (open, close, high, low, volume)
+5. WHEN fetched data is incomplete or invalid, THE Market_Monitor SHALL exclude that stock from the dataset
+6. THE Configuration_Manager SHALL allow switching between mock data and real data sources via configuration
+7. WHERE use_mock_data is set to true, THE Market_Monitor SHALL use simulated data for testing purposes
+8. WHERE use_mock_data is set to false, THE Market_Monitor SHALL fetch real market data from Yahoo Finance
+9. WHEN real market data is fetched, THE Market_Monitor SHALL cache the data to minimize API calls
+10. THE Market_Monitor SHALL respect Yahoo Finance rate limits and implement appropriate throttling
+
+### Requirement 9: Error Handling and Logging
 
 **User Story:** As a system administrator, I want comprehensive error logging, so that I can troubleshoot issues and ensure system reliability.
 

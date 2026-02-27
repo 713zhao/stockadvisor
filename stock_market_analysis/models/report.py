@@ -27,51 +27,101 @@ class DailyReport:
         """Returns True if report contains any recommendations."""
         return len(self.recommendations) > 0
     
-    def format_for_telegram(self) -> str:
-        """Formats report for Telegram delivery."""
+    def format_for_telegram(self, full_rationale_count: int = 0, truncated_length: int = 80, max_recommendations: int = 0) -> str:
+        """
+        Formats report for Telegram delivery.
+        
+        Args:
+            full_rationale_count: Number of top recommendations to show full rationale (0 = all)
+            truncated_length: Maximum length for truncated rationale
+            max_recommendations: Maximum total recommendations to include (0 = all)
+                                Split evenly between BUY and SELL
+        """
         lines = [
             f"📊 Market Report {self.trading_date.strftime('%m/%d')}",
             ""
         ]
         
         if self.has_recommendations():
-            # Group by recommendation type
-            buys = [r for r in self.recommendations if r.recommendation_type.value == "buy"]
-            sells = [r for r in self.recommendations if r.recommendation_type.value == "sell"]
+            # Group by recommendation type and sort by confidence
+            buys = sorted(
+                [r for r in self.recommendations if r.recommendation_type.value == "buy"],
+                key=lambda x: x.confidence_score,
+                reverse=True
+            )
+            sells = sorted(
+                [r for r in self.recommendations if r.recommendation_type.value == "sell"],
+                key=lambda x: x.confidence_score,
+                reverse=True
+            )
             holds = [r for r in self.recommendations if r.recommendation_type.value == "hold"]
+            
+            # Limit recommendations if max_recommendations is set
+            if max_recommendations > 0:
+                # Split evenly between BUY and SELL
+                max_per_type = max_recommendations // 2
+                original_buy_count = len(buys)
+                original_sell_count = len(sells)
+                buys = buys[:max_per_type]
+                sells = sells[:max_per_type]
+                
+                # Add note if recommendations were limited
+                if original_buy_count > len(buys) or original_sell_count > len(sells):
+                    lines.append(f"📋 Showing top {len(buys)} BUY and top {len(sells)} SELL recommendations")
+                    lines.append(f"   (Full report with all {original_buy_count + original_sell_count + len(holds)} recommendations saved to disk)")
+                    lines.append("")
             
             if buys:
                 lines.append(f"🟢 BUY ({len(buys)}):")
-                for rec in buys:
+                for idx, rec in enumerate(buys):
+                    # Show full rationale for top N or if full_rationale_count is 0
+                    show_full = (full_rationale_count == 0) or (idx < full_rationale_count)
+                    rationale = rec.rationale if show_full else self._truncate_text(rec.rationale, truncated_length)
+                    
                     lines.append(f"• {rec.name}")
                     lines.append(f"  {rec.symbol} | ${rec.target_price} | {rec.confidence_score:.0%}")
-                    lines.append(f"  📊 {rec.rationale}")
+                    lines.append(f"  📊 {rationale}")
                     lines.append(f"  ⚠️ {rec.risk_assessment}")
-                    lines.append(f"  {rec.get_stock_url()}")
+                    if show_full:
+                        lines.append(f"  {rec.get_stock_url()}")
                 lines.append("")
             
             if sells:
                 lines.append(f"🔴 SELL ({len(sells)}):")
-                for rec in sells:
+                for idx, rec in enumerate(sells):
+                    # Show full rationale for top N or if full_rationale_count is 0
+                    show_full = (full_rationale_count == 0) or (idx < full_rationale_count)
+                    rationale = rec.rationale if show_full else self._truncate_text(rec.rationale, truncated_length)
+                    
                     lines.append(f"• {rec.name}")
                     lines.append(f"  {rec.symbol} | ${rec.target_price} | {rec.confidence_score:.0%}")
-                    lines.append(f"  📊 {rec.rationale}")
+                    lines.append(f"  📊 {rationale}")
                     lines.append(f"  ⚠️ {rec.risk_assessment}")
-                    lines.append(f"  {rec.get_stock_url()}")
+                    if show_full:
+                        lines.append(f"  {rec.get_stock_url()}")
                 lines.append("")
             
-            if holds:
+            # Only show HOLD if not limiting recommendations, or if there's room
+            if max_recommendations == 0 and holds:
                 lines.append(f"🟡 HOLD ({len(holds)}):")
                 for rec in holds:
+                    # Always truncate HOLD recommendations
+                    rationale = self._truncate_text(rec.rationale, truncated_length)
                     lines.append(f"• {rec.name}")
                     lines.append(f"  {rec.symbol} | ${rec.target_price} | {rec.confidence_score:.0%}")
-                    lines.append(f"  📊 {rec.rationale}")
+                    lines.append(f"  📊 {rationale}")
                     lines.append(f"  ⚠️ {rec.risk_assessment}")
                 lines.append("")
         else:
             lines.append("ℹ️ No recommendations today")
         
         return "\n".join(lines)
+    
+    def _truncate_text(self, text: str, max_length: int) -> str:
+        """Truncates text to max_length and adds ellipsis."""
+        if len(text) <= max_length:
+            return text
+        return text[:max_length].rsplit(' ', 1)[0] + "..."
     
     def format_for_slack(self) -> str:
         """Formats report for Slack delivery."""

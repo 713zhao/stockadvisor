@@ -22,6 +22,10 @@ The system follows a pipeline architecture with clear separation of concerns:
 ```mermaid
 graph TD
     A[Scheduler] -->|Triggers Daily| B[Market_Monitor]
+    B -->|Uses| K[MarketDataAPI Interface]
+    K -->|Mock Mode| L[MockMarketDataAPI]
+    K -->|Real Mode| M[YahooFinanceAPI]
+    M -->|Fetches from| N[Yahoo Finance]
     B -->|Market Data| C[Analysis_Engine]
     C -->|Recommendations| D[Report_Generator]
     D -->|Daily Report| E[Notification_Service]
@@ -31,20 +35,41 @@ graph TD
     I[Configuration_Manager] -.->|Config| B
     I -.->|Config| C
     I -.->|Credentials| E
+    I -.->|Data Source Config| K
     J[Logger] -.->|Logs| B
     J -.->|Logs| C
     J -.->|Logs| D
     J -.->|Logs| E
     J -.->|Logs| I
+    J -.->|Logs| M
 ```
 
 ### Component Responsibilities
 
 **Market_Monitor**
 - Collects stock market data from configured regions (China, Hong Kong, USA by default)
+- Uses MarketDataAPI interface to support both mock and real data sources
 - Handles data source failures gracefully
 - Timestamps all collected data
 - Executes once per trading day per region
+
+**MarketDataAPI Interface**
+- Defines the contract for market data fetching
+- Implemented by both MockMarketDataAPI and YahooFinanceAPI
+- Allows seamless switching between mock and real data sources
+
+**YahooFinanceAPI**
+- Fetches real end-of-day market data from Yahoo Finance using yfinance library
+- Supports multiple stock symbol formats (US: AAPL, HK: 0700.HK, China: 601398.SS)
+- Implements rate limiting and exponential backoff retry logic
+- Validates data completeness before returning
+- Caches data to minimize API calls
+- No API key required (free access)
+
+**MockMarketDataAPI**
+- Generates simulated market data for testing purposes
+- Maintains consistent data patterns for reproducible tests
+- Used when use_mock_data configuration is set to true
 
 **Analysis_Engine**
 - Processes market data to identify investment opportunities
@@ -76,11 +101,16 @@ graph TD
 ### Data Flow
 
 1. **Scheduled Trigger**: Daily scheduler initiates the pipeline after market close
-2. **Data Collection**: Market_Monitor fetches data from all configured regions
-3. **Analysis**: Analysis_Engine processes data and generates recommendations
-4. **Report Generation**: Report_Generator compiles recommendations into formatted report
-5. **Distribution**: Notification_Service delivers report through all channels
-6. **Logging**: All operations log success/failure status
+2. **Configuration Check**: Market_Monitor checks use_mock_data configuration setting
+3. **Data Source Selection**: Market_Monitor selects either MockMarketDataAPI or YahooFinanceAPI based on configuration
+4. **Data Collection**: 
+   - If real mode: YahooFinanceAPI fetches data from Yahoo Finance with proper symbol formatting
+   - If mock mode: MockMarketDataAPI generates simulated data
+   - Data is validated for completeness and cached
+5. **Analysis**: Analysis_Engine processes data and generates recommendations
+6. **Report Generation**: Report_Generator compiles recommendations into formatted report
+7. **Distribution**: Notification_Service delivers report through all channels
+8. **Logging**: All operations log success/failure status
 
 ### Error Handling Strategy
 
@@ -126,7 +156,445 @@ class MarketMonitor:
 **Dependencies:**
 - Configuration_Manager (for region list)
 - Logger (for error logging)
-- External market data APIs
+- MarketDataAPI (for data fetching)
+
+### MarketDataAPI Interface
+
+**Responsibilities:**
+- Define the contract for market data fetching
+- Enable switching between mock and real data sources
+
+**Public Interface:**
+```python
+from abc import ABC, abstractmethod
+from typing import List, Dict
+from datetime import datetime, date
+
+class MarketDataAPI(ABC):
+    @abstractmethod
+    def fetch_stock_data(self, symbol: str, region: MarketRegion, 
+                        start_date: date, end_date: date) -> Optional[MarketData]:
+        """
+        Fetches market data for a single stock.
+        
+        Args:
+            symbol: Stock symbol (format varies by region)
+            region: Market region for the stock
+            start_date: Start date for data fetch
+            end_date: End date for data fetch
+            
+        Returns:
+            MarketData if successful, None if data unavailable or invalid
+            
+        Raises:
+            No exceptions - returns None on errors
+        """
+        pass
+    
+    @abstractmethod
+    def fetch_multiple_stocks(self, symbols: List[str], region: MarketRegion,
+                             start_date: date, end_date: date) -> Dict[str, MarketData]:
+        """
+        Fetches market data for multiple stocks.
+        
+        Args:
+            symbols: List of stock symbols
+            region: Market region for the stocks
+            start_date: Start date for data fetch
+            end_date: End date for data fetch
+            
+        Returns:
+            Dictionary mapping symbols to MarketData (excludes failed fetches)
+        """
+        pass
+    
+    @abstractmethod
+    def validate_symbol_format(self, symbol: str, region: MarketRegion) -> bool:
+        """
+        Validates that a stock symbol matches the expected format for the region.
+        
+        Args:
+            symbol: Stock symbol to validate
+            region: Market region
+            
+        Returns:
+            True if symbol format is valid for the region
+        """
+        pass
+```
+
+**Implementations:**
+- MockMarketDataAPI: Generates simulated data
+- YahooFinanceAPI: Fetches real data from Yahoo Finance
+
+### YahooFinanceAPI
+
+**Responsibilities:**
+- Fetch real end-of-day market data from Yahoo Finance
+- Support multiple stock symbol formats (US, Hong Kong, China)
+- Implement rate limiting and retry logic
+- Validate data completeness
+- Cache data to minimize API calls
+
+**Public Interface:**
+```python
+import yfinance as yf
+from typing import Optional, Dict, List
+from datetime import date, datetime, timedelta
+import time
+
+class YahooFinanceAPI(MarketDataAPI):
+    def __init__(self, cache_ttl_hours: int = 24):
+        """
+        Initializes the Yahoo Finance API client.
+        
+        Args:
+            cache_ttl_hours: Time-to-live for cached data in hours
+        """
+        self.cache: Dict[str, tuple[MarketData, datetime]] = {}
+        self.cache_ttl = timedelta(hours=cache_ttl_hours)
+        self.rate_limit_delay = 0.5  # seconds between requests
+        self.last_request_time = None
+    
+    def fetch_stock_data(self, symbol: str, region: MarketRegion, 
+                        start_date: date, end_date: date) -> Optional[MarketData]:
+        """
+        Fetches market data for a single stock from Yahoo Finance.
+        
+        Implements:
+        - Symbol format validation
+        - Rate limiting with delays
+        - Exponential backoff retry (3 attempts)
+        - Data completeness validation
+        - Caching with TTL
+        
+        Returns None if:
+        - Symbol format is invalid
+        - API is unavailable after retries
+        - Data is incomplete or invalid
+        """
+        # Check cache first
+        cached_data = self._get_from_cache(symbol)
+        if cached_data:
+            return cached_data
+        
+        # Validate symbol format
+        if not self.validate_symbol_format(symbol, region):
+            logger.error(f"Invalid symbol format: {symbol} for region {region}")
+            return None
+        
+        # Format symbol for Yahoo Finance
+        yf_symbol = self._format_symbol_for_yfinance(symbol, region)
+        
+        # Implement rate limiting
+        self._apply_rate_limit()
+        
+        # Fetch with retry logic
+        max_retries = 3
+        retry_delay = 1  # Start with 1 second
+        
+        for attempt in range(max_retries):
+            try:
+                ticker = yf.Ticker(yf_symbol)
+                hist = ticker.history(start=start_date, end=end_date)
+                
+                if hist.empty:
+                    logger.warning(f"No data returned for {yf_symbol}")
+                    return None
+                
+                # Get the most recent day's data
+                latest = hist.iloc[-1]
+                
+                # Validate completeness
+                if not self._validate_data_completeness(latest):
+                    logger.warning(f"Incomplete data for {yf_symbol}")
+                    return None
+                
+                # Create MarketData object
+                market_data = MarketData(
+                    symbol=symbol,
+                    region=region,
+                    timestamp=datetime.now(),
+                    open_price=Decimal(str(latest['Open'])),
+                    close_price=Decimal(str(latest['Close'])),
+                    high_price=Decimal(str(latest['High'])),
+                    low_price=Decimal(str(latest['Low'])),
+                    volume=int(latest['Volume']),
+                    additional_metrics={}
+                )
+                
+                # Cache the result
+                self._add_to_cache(symbol, market_data)
+                
+                return market_data
+                
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed for {yf_symbol}: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+        
+        logger.error(f"All retry attempts failed for {yf_symbol}")
+        return None
+    
+    def fetch_multiple_stocks(self, symbols: List[str], region: MarketRegion,
+                             start_date: date, end_date: date) -> Dict[str, MarketData]:
+        """
+        Fetches market data for multiple stocks.
+        
+        Implements batch fetching with individual error handling.
+        Failed fetches are excluded from results.
+        """
+        results = {}
+        
+        for symbol in symbols:
+            data = self.fetch_stock_data(symbol, region, start_date, end_date)
+            if data:
+                results[symbol] = data
+        
+        return results
+    
+    def validate_symbol_format(self, symbol: str, region: MarketRegion) -> bool:
+        """
+        Validates stock symbol format for the region.
+        
+        Format rules:
+        - US: Simple ticker (e.g., AAPL, MSFT, GOOGL)
+        - Hong Kong: Ticker with .HK suffix (e.g., 0700.HK, 9988.HK)
+        - China: Ticker with .SS (Shanghai) or .SZ (Shenzhen) suffix (e.g., 601398.SS, 000001.SZ)
+        """
+        if region == MarketRegion.USA:
+            return symbol.isalpha() and symbol.isupper()
+        elif region == MarketRegion.HONG_KONG:
+            return symbol.endswith('.HK') and symbol[:-3].isdigit()
+        elif region == MarketRegion.CHINA:
+            return (symbol.endswith('.SS') or symbol.endswith('.SZ')) and symbol[:-3].isdigit()
+        return False
+    
+    def _format_symbol_for_yfinance(self, symbol: str, region: MarketRegion) -> str:
+        """
+        Formats symbol for Yahoo Finance API.
+        Most regions use the symbol as-is, but this allows for future customization.
+        """
+        return symbol
+    
+    def _apply_rate_limit(self):
+        """Implements rate limiting to respect Yahoo Finance API limits."""
+        if self.last_request_time:
+            elapsed = (datetime.now() - self.last_request_time).total_seconds()
+            if elapsed < self.rate_limit_delay:
+                time.sleep(self.rate_limit_delay - elapsed)
+        self.last_request_time = datetime.now()
+    
+    def _validate_data_completeness(self, data) -> bool:
+        """
+        Validates that all required fields are present and valid.
+        
+        Required fields: Open, Close, High, Low, Volume
+        """
+        required_fields = ['Open', 'Close', 'High', 'Low', 'Volume']
+        
+        for field in required_fields:
+            if field not in data or pd.isna(data[field]):
+                return False
+            if field == 'Volume' and data[field] <= 0:
+                return False
+        
+        return True
+    
+    def _get_from_cache(self, symbol: str) -> Optional[MarketData]:
+        """Retrieves data from cache if not expired."""
+        if symbol in self.cache:
+            data, timestamp = self.cache[symbol]
+            if datetime.now() - timestamp < self.cache_ttl:
+                return data
+            else:
+                del self.cache[symbol]
+        return None
+    
+    def _add_to_cache(self, symbol: str, data: MarketData):
+        """Adds data to cache with current timestamp."""
+        self.cache[symbol] = (data, datetime.now())
+```
+
+**Dependencies:**
+- yfinance library (pip install yfinance)
+- Logger (for error and retry logging)
+- No API key required
+
+**Symbol Format Examples:**
+- US stocks: AAPL, MSFT, GOOGL, TSLA
+- Hong Kong stocks: 0700.HK (Tencent), 9988.HK (Alibaba)
+- China stocks: 601398.SS (ICBC Shanghai), 000001.SZ (Ping An Shenzhen)
+
+### MockMarketDataAPI
+
+**Responsibilities:**
+- Generate simulated market data for testing
+- Maintain consistent patterns for reproducible tests
+- Support all regions and symbol formats
+
+**Public Interface:**
+```python
+import random
+from decimal import Decimal
+from datetime import datetime
+
+class MockMarketDataAPI(MarketDataAPI):
+    def __init__(self, seed: Optional[int] = None):
+        """
+        Initializes the mock API with optional random seed for reproducibility.
+        
+        Args:
+            seed: Random seed for reproducible data generation
+        """
+        if seed:
+            random.seed(seed)
+        self.base_prices = {}  # Track base prices for consistency
+    
+    def fetch_stock_data(self, symbol: str, region: MarketRegion, 
+                        start_date: date, end_date: date) -> Optional[MarketData]:
+        """
+        Generates simulated market data for a stock.
+        
+        Data characteristics:
+        - Consistent base price per symbol
+        - Realistic daily variations (±5%)
+        - Valid OHLC relationships (High >= Open/Close, Low <= Open/Close)
+        - Reasonable volume ranges
+        """
+        # Get or create base price for symbol
+        if symbol not in self.base_prices:
+            self.base_prices[symbol] = Decimal(str(random.uniform(10, 500)))
+        
+        base_price = self.base_prices[symbol]
+        
+        # Generate realistic daily variation
+        variation = random.uniform(-0.05, 0.05)
+        close_price = base_price * Decimal(str(1 + variation))
+        
+        # Generate OHLC with valid relationships
+        open_price = base_price * Decimal(str(1 + random.uniform(-0.03, 0.03)))
+        high_price = max(open_price, close_price) * Decimal(str(1 + random.uniform(0, 0.02)))
+        low_price = min(open_price, close_price) * Decimal(str(1 - random.uniform(0, 0.02)))
+        
+        # Generate volume
+        volume = random.randint(1000000, 100000000)
+        
+        return MarketData(
+            symbol=symbol,
+            region=region,
+            timestamp=datetime.now(),
+            open_price=open_price,
+            close_price=close_price,
+            high_price=high_price,
+            low_price=low_price,
+            volume=volume,
+            additional_metrics={}
+        )
+    
+    def fetch_multiple_stocks(self, symbols: List[str], region: MarketRegion,
+                             start_date: date, end_date: date) -> Dict[str, MarketData]:
+        """Generates simulated data for multiple stocks."""
+        results = {}
+        for symbol in symbols:
+            data = self.fetch_stock_data(symbol, region, start_date, end_date)
+            if data:
+                results[symbol] = data
+        return results
+    
+    def validate_symbol_format(self, symbol: str, region: MarketRegion) -> bool:
+        """Mock API accepts any symbol format."""
+        return True
+```
+
+**Dependencies:**
+- None (pure Python implementation)
+
+### Market_Monitor (Updated)
+
+**Responsibilities:**
+- Collect stock market data from configured regions
+- Use MarketDataAPI interface (mock or real based on configuration)
+- Handle data source failures gracefully
+- Timestamp all collected data
+
+**Public Interface:**
+```python
+class MarketMonitor:
+    def __init__(self, config_manager: ConfigurationManager):
+        """
+        Initializes the Market Monitor with configuration.
+        
+        Selects data source (mock or real) based on use_mock_data config setting.
+        """
+        self.config_manager = config_manager
+        self.data_api = self._create_data_api()
+    
+    def _create_data_api(self) -> MarketDataAPI:
+        """
+        Creates the appropriate data API based on configuration.
+        
+        Returns MockMarketDataAPI if use_mock_data is true,
+        otherwise returns YahooFinanceAPI.
+        """
+        if self.config_manager.get_use_mock_data():
+            return MockMarketDataAPI()
+        else:
+            return YahooFinanceAPI()
+    
+    def collect_market_data(self, regions: List[MarketRegion]) -> MarketDataCollection:
+        """
+        Collects market data from specified regions using configured data source.
+        
+        Args:
+            regions: List of market regions to monitor
+            
+        Returns:
+            MarketDataCollection containing data from all available regions
+            
+        Raises:
+            No exceptions - logs errors and continues with available regions
+        """
+        # Get stock symbols for each region from configuration
+        all_data = {}
+        failed_regions = []
+        
+        for region in regions:
+            try:
+                symbols = self.config_manager.get_symbols_for_region(region)
+                end_date = date.today()
+                start_date = end_date - timedelta(days=7)  # Get last week of data
+                
+                region_data = self.data_api.fetch_multiple_stocks(
+                    symbols, region, start_date, end_date
+                )
+                
+                if region_data:
+                    all_data[region] = list(region_data.values())
+                else:
+                    logger.warning(f"No data collected for region {region}")
+                    failed_regions.append(region)
+                    
+            except Exception as e:
+                logger.error(f"Failed to collect data for {region}: {e}")
+                failed_regions.append(region)
+        
+        return MarketDataCollection(
+            collection_time=datetime.now(),
+            data_by_region=all_data,
+            failed_regions=failed_regions
+        )
+    
+    def get_last_collection_time(self, region: MarketRegion) -> Optional[datetime]:
+        """Returns the timestamp of the last successful data collection for a region."""
+        pass
+```
+
+**Dependencies:**
+- Configuration_Manager (for region list and use_mock_data setting)
+- Logger (for error logging)
+- MarketDataAPI (for data fetching)
 
 ### Analysis_Engine
 
@@ -300,6 +768,49 @@ class ConfigurationManager:
         """Validates and stores Email configuration."""
         pass
     
+    def get_use_mock_data(self) -> bool:
+        """
+        Returns whether the system should use mock data or real data.
+        
+        Returns:
+            True if mock data should be used, False for real data from Yahoo Finance
+        """
+        pass
+    
+    def set_use_mock_data(self, use_mock: bool) -> None:
+        """
+        Sets whether to use mock data or real data.
+        
+        Args:
+            use_mock: True to use mock data, False to use real Yahoo Finance data
+        """
+        pass
+    
+    def get_symbols_for_region(self, region: MarketRegion) -> List[str]:
+        """
+        Returns the list of stock symbols to monitor for a given region.
+        
+        Args:
+            region: Market region
+            
+        Returns:
+            List of stock symbols in the appropriate format for the region
+        """
+        pass
+    
+    def set_symbols_for_region(self, region: MarketRegion, symbols: List[str]) -> Result[None, str]:
+        """
+        Sets the list of stock symbols to monitor for a region.
+        
+        Args:
+            region: Market region
+            symbols: List of stock symbols (must match region format)
+            
+        Returns:
+            Success or error message if symbols have invalid format
+        """
+        pass
+    
     def persist_configuration(self) -> None:
         """Saves configuration to persistent storage."""
         pass
@@ -312,6 +823,7 @@ class ConfigurationManager:
 **Dependencies:**
 - Logger (for configuration change logging)
 - Persistent storage (file system or database)
+- MarketDataAPI (for symbol format validation)
 
 ### Scheduler
 
@@ -494,10 +1006,26 @@ class SystemConfiguration:
     slack: Optional[SlackConfig]
     email: Optional[EmailConfig]
     custom_schedule: Optional[str]  # Cron expression
+    use_mock_data: bool = False  # False = use real Yahoo Finance data, True = use mock data
+    stock_symbols: Dict[MarketRegion, List[str]] = None  # Stock symbols to monitor per region
     
     def get_default_regions() -> List[MarketRegion]:
         """Returns default regions: China, Hong Kong, USA."""
         return [MarketRegion.CHINA, MarketRegion.HONG_KONG, MarketRegion.USA]
+    
+    def get_default_symbols() -> Dict[MarketRegion, List[str]]:
+        """
+        Returns default stock symbols for each region.
+        
+        US: Major tech and blue-chip stocks
+        Hong Kong: Major companies listed on HKEX
+        China: Major companies on Shanghai and Shenzhen exchanges
+        """
+        return {
+            MarketRegion.USA: ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
+            MarketRegion.HONG_KONG: ["0700.HK", "9988.HK", "0941.HK", "1299.HK"],
+            MarketRegion.CHINA: ["601398.SS", "600519.SS", "000001.SZ", "000858.SZ"]
+        }
 ```
 
 ### Result Types
@@ -643,7 +1171,43 @@ class DeliveryResult:
 
 *For any* critical error in one component (Market_Monitor, Analysis_Engine, or Notification_Service), other unaffected components should continue to operate normally.
 
-**Validates: Requirements 8.5**
+**Validates: Requirements 9.5**
+
+### Property 20: Symbol Format Validation
+
+*For any* stock symbol and market region, the YahooFinanceAPI should correctly validate whether the symbol format matches the expected format for that region (US: alphabetic, HK: numeric.HK, China: numeric.SS or numeric.SZ).
+
+**Validates: Requirements 8.2**
+
+### Property 21: Data Completeness Validation
+
+*For any* market data fetched by YahooFinanceAPI, if the data is returned (not None), it should contain all required fields (open, close, high, low, volume) with valid non-null values.
+
+**Validates: Requirements 8.4, 8.5**
+
+### Property 22: Mock vs Real Data Source Selection
+
+*For any* configuration setting of use_mock_data, the Market_Monitor should use MockMarketDataAPI when use_mock_data is true and YahooFinanceAPI when use_mock_data is false.
+
+**Validates: Requirements 8.6, 8.7, 8.8**
+
+### Property 23: Cache Effectiveness
+
+*For any* stock symbol, when YahooFinanceAPI fetches data twice within the cache TTL period, the second fetch should return cached data without making an API call.
+
+**Validates: Requirements 8.9**
+
+### Property 24: Rate Limiting Compliance
+
+*For any* sequence of API calls made by YahooFinanceAPI, the time between consecutive calls should be at least the configured rate_limit_delay.
+
+**Validates: Requirements 8.10**
+
+### Property 25: Retry with Exponential Backoff
+
+*For any* failed API call in YahooFinanceAPI, the system should retry up to 3 times with exponentially increasing delays (1s, 2s, 4s) before returning None.
+
+**Validates: Requirements 8.3**
 
 ## Error Handling
 
@@ -655,6 +1219,7 @@ The system implements a comprehensive error handling strategy based on graceful 
 - Individual market region data collection failures
 - Individual notification channel delivery failures
 - Temporary analysis failures (handled by retry logic)
+- Yahoo Finance API rate limiting or temporary unavailability
 
 **Non-Recoverable Errors:**
 - Invalid configuration that violates system constraints
